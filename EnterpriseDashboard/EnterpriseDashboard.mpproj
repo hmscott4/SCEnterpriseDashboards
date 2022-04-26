@@ -1,0 +1,59 @@
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <ProjectGuid>{fc7a6424-f8a6-4346-b200-476592fd81bf}</ProjectGuid>
+    <RootNamespace>EnterpriseDashboard</RootNamespace>
+    <Name>EnterpriseDashboard</Name>
+    <ManagementPackName>EnterpriseDashboard</ManagementPackName>
+    <Version>3.0.0.13</Version>
+    <MpFrameworkVersion>v7.0.3</MpFrameworkVersion>
+    <MpFrameworkProfile>OM</MpFrameworkProfile>
+    <ProductVersion>1.1.0.0</ProductVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\Debug\</OutputPath>
+    <GenerateSealed>false</GenerateSealed>
+    <Company>MyCompany</Company>
+    <Copyright>Copyright (c) MyCompany. All rights reserved.</Copyright>
+    <DelaySigning>false</DelaySigning>
+    <AssemblyOriginatorKeyFile />
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <DebugSymbols>false</DebugSymbols>
+    <OutputPath>bin\Release\</OutputPath>
+    <DelaySigning>false</DelaySigning>
+    <Company>MyCompany</Company>
+    <Copyright>Copyright (c) MyCompany. All rights reserved.</Copyright>
+    <DelaySign>false</DelaySign>
+    <AssemblyOriginatorKeyFile />
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="EnterpriseDashboard.mpx">
+      <SubType>Code</SubType>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <ManagementPackReference Include="Microsoft.SystemCenter.Library">
+      <HintPath>C:\Program Files (x86)\System Center Visual Studio Authoring Extensions\References\OM2016\Microsoft.SystemCenter.Library.mp</HintPath>
+      <Alias>SCLibrary</Alias>
+      <MinVersion>7.0.8437.0</MinVersion>
+    </ManagementPackReference>
+    <ManagementPackReference Include="Microsoft.Windows.Library">
+      <HintPath>C:\Program Files (x86)\System Center Visual Studio Authoring Extensions\References\OM2016\Microsoft.Windows.Library.mp</HintPath>
+      <Alias>Windows</Alias>
+      <MinVersion>7.5.8501.0</MinVersion>
+    </ManagementPackReference>
+    <ManagementPackReference Include="System.Health.Library">
+      <HintPath>C:\Program Files (x86)\System Center Visual Studio Authoring Extensions\References\OM2016\System.Health.Library.mp</HintPath>
+      <Alias>SystemHealthLibrary7084330</Alias>
+      <MinVersion>7.0.8437.0</MinVersion>
+    </ManagementPackReference>
+    <ManagementPackReference Include="System.Library">
+      <HintPath>C:\Program Files (x86)\System Center Visual Studio Authoring Extensions\References\OM2016\System.Library.mp</HintPath>
+      <Alias>System</Alias>
+      <MinVersion>7.5.8501.0</MinVersion>
+    </ManagementPackReference>
+  </ItemGroup>
+  <Import Project="$(MSBuildExtensionsPath)\Microsoft\VSAC\Microsoft.SystemCenter.OperationsManager.targets" />
+</Project>

@@ -1,0 +1,2693 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ManagementPackFragment SchemaVersion="2.0" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+  <TypeDefinitions>
+    <ModuleTypes>
+      <WriteActionModuleType ID="MSDashboards.Custom.SDK.Generic.WAType" Accessibility="Public" Batching="false">
+        <Configuration>
+          <xsd:element minOccurs="1" name="ScriptName" type="xsd:string" xmlns:xsd="http://www.w3.org/2001/XMLSchema" />
+          <xsd:element minOccurs="0" name="SQLServer" type="xsd:string" xmlns:xsd="http://www.w3.org/2001/XMLSchema" />
+          <xsd:element minOccurs="0" name="SQLDBName" type="xsd:string" xmlns:xsd="http://www.w3.org/2001/XMLSchema" />
+          <xsd:element minOccurs="0" name="ScopedGroup" type="xsd:string" xmlns:xsd="http://www.w3.org/2001/XMLSchema" />
+          <xsd:element minOccurs="0" name="MonitorList" type="xsd:string" xmlns:xsd="http://www.w3.org/2001/XMLSchema" />
+          <xsd:element minOccurs="0" name="Mode" type="xsd:string" xmlns:xsd="http://www.w3.org/2001/XMLSchema" />
+          <xsd:element minOccurs="1" name="TimeoutSeconds" type="xsd:integer" xmlns:xsd="http://www.w3.org/2001/XMLSchema" />
+        </Configuration>
+        <OverrideableParameters>
+          <OverrideableParameter ID="SQLServer" Selector="$Config/SQLServer$" ParameterType="string" />
+          <OverrideableParameter ID="SQLDBName" Selector="$Config/SQLDBName$" ParameterType="string" />
+          <OverrideableParameter ID="ScopedGroup" Selector="$Config/ScopedGroup$" ParameterType="string" />
+          <OverrideableParameter ID="MonitorList" Selector="$Config/MonitorList$" ParameterType="string" />
+          <OverrideableParameter ID="Mode" Selector="$Config/Mode$" ParameterType="string" />
+          <OverrideableParameter ID="TimeoutSeconds" Selector="$Config/TimeoutSeconds$" ParameterType="decimal" />
+        </OverrideableParameters>
+        <ModuleImplementation Isolation="Any">
+          <Composite>
+            <MemberModules>
+              <WriteAction ID="MSDashboards.CustomWA" TypeID="Windows!Microsoft.Windows.PowerShellWriteAction">
+                <ScriptName>$Config/ScriptName$</ScriptName>
+                <ScriptBody>
+                                    
+               Param($SQLserver,$SQLDBName,$ScopedGroup,$MonitorList)
+
+			   # Copyright (c) 2009 Microsoft Corporation. All rights reserved.
+              #
+              # THIS CODE IS MADE AVAILABLE AS IS, WITHOUT WARRANTY OF ANY KIND. THE ENTIRE RISK
+              # OF THE USE OR THE RESULTS FROM THE USE OF THIS CODE REMAINS WITH THE USER.
+
+
+			## Initializing required variables 
+			## Do not modify 
+			
+			  
+
+
+    #Connect to MG
+    #Load OpsMgr 2012 SDK DLLs
+    [System.Reflection.Assembly]::LoadWithPartialName('Microsoft.EnterpriseManagement.OperationsManager.Common') | Out-Null
+    [System.Reflection.Assembly]::LoadWithPartialName('Microsoft.EnterpriseManagement.OperationsManager') | Out-Null
+ 
+
+ 		$Scomreg=Get-ItemProperty "hklm:\software\microsoft\Microsoft operations manager\3.0\setup"
+              $insdir=$scomreg.InstallDirectory.ToString().Substring(0,$scomreg.InstallDirectory.ToString().indexof("Server\"))
+              $modulepath=$insdir+'Powershell\OperationsManager\OperationsManager.psm1'
+			  
+
+    Write-Verbose "Connecting to Management Group via SDK $SDK`..."
+    $MGConnSetting = New-Object Microsoft.EnterpriseManagement.ManagementGroupConnectionSettings("localhost")
+
+
+
+
+$MG = New-Object Microsoft.EnterpriseManagement.ManagementGroup($MGConnSetting)
+    
+
+
+
+            $endTime = [DateTime]::UtcNow
+              $timeDiff = [TimeSpan]::FromHours(2)
+              $startTime = $endTime - $timeDiff
+
+
+              #test group search
+
+              $filter ="DisplayName='"+$ScopedGroup +"'"
+
+
+ $criteria =new-object Microsoft.EnterpriseManagement.Monitoring.MonitoringObjectGenericCriteria($filter);
+ $grp=$mg.GetMonitoringObjects($criteria);
+
+
+
+
+
+[guid]$guid=($grp.id).Guid
+$mpCriteria=new-object Microsoft.EnterpriseManagement.Configuration.ManagementPackCriteria("Name = 'System.Library'")
+$mp=$MG.ManagementPacks.GetManagementPacks($mpCriteria)
+$relContainment = $mp.GetRelationship("System.Containment");
+[Type[]]$MethodType = ([Guid],[Microsoft.EnterpriseManagement.Configuration.ManagementPackRelationship],[Microsoft.EnterpriseManagement.Common.TraversalDepth],[Microsoft.EnterpriseManagement.Common.ObjectQueryOptions])
+
+[Type[]]$MethodType2 = ([Guid],[Microsoft.EnterpriseManagement.Common.TraversalDepth],[Microsoft.EnterpriseManagement.Common.ObjectQueryOptions])
+$method2 = $mg.EntityObjects.GetType().GetMethod("GetRelatedObjects",$Methodtype2)
+$genericMethod2 = $method2.MakeGenericMethod([Microsoft.EnterpriseManagement.Monitoring.PartialMonitoringObject])
+$objects = $genericMethod2.Invoke($mg.EntityObjects, ($guid,[Microsoft.EnterpriseManagement.Common.TraversalDepth]::OneLevel, [Microsoft.EnterpriseManagement.Common.ObjectQueryOptions]::Default))
+
+
+
+
+
+$synctime=(get-date).ToString("yyyy-MM-dd hh:mm")
+
+$getalerts=$true
+
+
+
+#### fetching alerts for these objects
+IF($getalerts){
+#### fetching alerts for these objects
+
+$alertcriteria =new-object Microsoft.EnterpriseManagement.Monitoring.MonitoringAlertCriteria("ResolutionState !=255   and Severity != 0");
+
+  $allalertssdk=@()
+        
+       $allalertssdk= $grp.GetMonitoringAlerts($alertcriteria,[Microsoft.EnterpriseManagement.Common.TraversalDepth]::Recursive)|select ID,Name,MonitoringObjectPath,Severity,Priority,Timeraised,Resolutionstate
+
+            
+         
+
+
+
+}
+
+
+            
+# with selective criteria
+IF($getPerf -eq $true)
+{
+      $allperfssdk=@()
+      $allperfdata=@()
+   foreach ($item in  $objects)
+            {
+            
+            $oid=$item.id
+            $crttext="MonitoringObjectId='"+$oid+"'"+" and (CounterName='% Processor Time' or CounterName='LDAP Client Sessions' or CounterName='LDAP Searches/sec' or CounterName='System Up Time' or  CounterName='Active Directory Last Bind'   or    CounterName='NTLM Authentications' or CounterName='Kerberos Authentications')"
+        
+
+
+    
+            $endTime = [DateTime]::UtcNow
+              $timeDiff = [TimeSpan]::FromHours(2)
+              $startTime = $endTime - $timeDiff
+
+
+
+ #$newcriteria=New-Object Microsoft.EnterpriseManagement.Monitoring.MonitoringPerformanceDataCriteria("CounterName='% Processor Time' or CounterName='LDAP Client Sessions' or CounterName='LDAP Searches/sec' or CounterName='System Up Time'")    
+  $newcriteria=New-Object Microsoft.EnterpriseManagement.Monitoring.MonitoringPerformanceDataCriteria($crttext)    
+  
+  
+        $reader = $mg.GetMonitoringPerformanceDataReader($newcriteria)
+while ($reader.Read())
+{
+    #Create the performance data object and then get values in the date/time range
+    $perfData = $reader.GetMonitoringPerformanceData()
+    $valueReader = $perfData.GetValueReader($starttime,$endTime)
+    $allperfdata+=$perfData 
+
+    #Return each value
+    while ($valueReader.Read())
+    {
+
+        $perfValue = $valueReader.GetMonitoringPerformanceDataValue()
+        #$perfValue
+        
+         $allperfssdk+= new-object pscustomobject -Property @{
+       GUID=$item.ID
+       Name =$item.displayname
+       MonitoringPerformanceDataId=$perfValue.MonitoringPerformanceDataId
+       SampleValue=$perfValue.SampleValue
+        TimeSampled =$perfValue.TimeSampled
+        TimeAdded =$perfValue.TimeAdded  
+        Id=$perfValue.Id
+
+       
+       }
+
+
+    }
+}
+
+
+}
+
+
+
+
+
+
+$intid=@()
+
+$intid+=$allperfssdk|select monitoringperformancedataid -Unique
+
+$perfgrp=@()
+$perfgrp=$allperfssdk|group-object -Property MonitoringPerformanceDataId
+
+
+
+
+
+				$SqlConnection=new-object System.Data.SqlClient.SqlConnection
+				$connectionString = "Server="+$($Scomreg.DatabaseServerName)+";Database="+$($Scomreg.DatabaseName)+";Integrated Security =SSPI"
+				$SqlConnection.ConnectionString =$connectionString
+				Try
+				{
+				$SqlConnection.Open()
+				}
+				Catch [System.Exception]
+				{
+				$ex = $_.Exception
+				$api = new-object -comObject 'MOM.ScriptAPI'
+				$exmessage=$SqlConnection.ConnectionString+':'+$ex
+				$api.LogScriptEvent("SQLCannotOPENDB",9004,2, $exmessage)
+				}
+				Finally
+				{
+				}
+
+
+##Preflight checks
+
+$query=new-object System.Data.SqlClient.SqlCommand
+						$query.Connection=$SqlConnection
+						$query.CommandText="SELECT  [Id]
+      ,[PerformanceSourceInternalId]
+  
+     
+      ,[ObjectName]
+      ,[CounterName]
+       ,[InstanceName]
+
+  FROM ["+$Scomreg.DatabaseName+"].[dbo].[PerformanceCounterView] where PerformanceSourceInternalId in ($($intid.MonitoringPerformanceDataId -join ','))"
+
+
+						$sqlreader=$query.Executereader()
+
+						$sourcetable = New-Object system.Data.DataTable
+
+						$sourcetable.load($sqlreader)
+$sourcetable.PrimaryKey=$sourcetable.Columns[1]
+
+
+
+
+$finalperf=@()
+
+
+Foreach ($item in $perfgrp)
+{
+
+
+  $Perftableformatted = "" | Select ID,Name,MonitoringPerformanceDataId,Objectname,Countername,Instancename,SampleValue,History
+
+
+    if ($sourcetable.Rows.Contains($item.Name))
+      {
+
+      $stableitem=$sourcetable.Rows.Find($item.Name)
+
+      $Perftableformatted.Name = ($item.Group|select Name -Unique).Name
+      $Perftableformatted.ID=($item.Group|select GUID -Unique).GUID
+        $Perftableformatted.MonitoringPerformanceDataId = [int]$item.Name
+  $Perftableformatted.Objectname= [string]$stableitem.Objectname
+  $Perftableformatted.Countername = [string]$stableitem.Countername
+  $Perftableformatted.Instancename = [string]$stableitem.Instancename
+  $Perftableformatted.SampleValue = [long]$item.group[$item.group.count-1].SampleValue
+  $Perftableformatted.History = [string]"$($item.Group.'SampleValue' -join ',')"
+
+  $finalperf+=$Perftableformatted
+
+      }
+   
+
+
+
+
+}
+
+
+
+
+
+
+
+$synctime=(get-date).ToString("yyyy-MM-dd hh:mm")
+
+
+
+
+
+## populate perf data 
+
+$PerfTable = New-Object System.Data.DataTable
+  $cols = $finalperf| select -first 1 | get-member -MemberType NoteProperty | select -Expand Name
+
+  $PerfTable.Columns.Add("ID")
+    $PerfTable.Columns.Add("Name")
+      $PerfTable.Columns.Add("HealthState")
+        $PerfTable.Columns.Add("hasData")
+          $PerfTable.Columns.Add("ObjectName")
+             $PerfTable.Columns.Add("CounterName")
+                $PerfTable.Columns.Add("InstanceName")
+                 $PerfTable.Columns.Add("SampleValue")
+                  $PerfTable.Columns.Add("History")
+                   $PerfTable.Columns.Add("SyncTime")
+
+ $PerfTable.PrimaryKey=$Perftable.Columns["ID"]
+
+
+  foreach ($data in $finalperf)
+  {
+     $row = $PerfTable.NewRow()
+     $row.'Id'=$data.MonitoringPerformanceDataId 
+     $row.'Name'=$data.Name
+     $row.'ObjectName'=$data.ObjectName
+     $row.'CounterName'=$data.CounterName
+     If($data.InstanceName){$row.'InstanceName'=$data.InstanceName}
+     $row.'SampleValue'=$data.SampleValue
+     $row.'History'=$data.History
+     $row.'SyncTime'=$synctime
+
+     $PerfTable.Rows.Add($row)
+  }
+
+
+  }
+  
+  $row=$col=$cols=$data=$null
+  ##populate state data 
+
+  $web=Get-SCOMWebAddressSetting
+              if($web.count -eq 0 -or $web.count -eq $null)
+              {
+              $webconsole=$web.WebConsoleUrl.ToString()
+              }
+              else
+              {
+              $webconsole=$web[0].WebConsoleUrl.ToString()
+              }
+
+
+
+
+  
+$StateTable = New-Object System.Data.DataTable
+  $cols = $objects| select -first 1 | get-member -MemberType Property | select -Expand Name
+
+
+
+  $statetable.Columns.Add("ID")
+  $statetable.Columns.Add("URL")
+  $statetable.Columns.Add("Name")
+  $statetable.Columns.Add("Fullname")
+  $statetable.Columns.Add("Classname")
+  $statetable.Columns.Add("HealthState")
+  $statetable.Columns.Add("AvailabilityLastModified")
+  $statetable.Columns.Add("Synctime")
+
+
+
+
+
+  foreach ($data in $objects)
+  {
+     $row = $stateTable.NewRow()
+         $row.'Id'=$data.ID
+
+     $row.'Name'=$data.DisplayName
+     $row.'Fullname'=$data.Fullname
+     $row.'Classname'=$data.Fullname.Substring(0,$data.Fullname.IndexOf(":"))
+
+     If($data.InMaintenanceMode){$row.'HealthState'='InMaintenance'}
+     Elseif($data.IsAvailable -match 'False'){$row.'HealthState'='Unavailable'}Else
+     {$row.'HealthState'=$data.HealthState}  
+
+     $row.'AvailabilityLastModified'=$data.AvailabilityLastModified
+
+  
+     $row.'SyncTime'=$synctime
+     $row.'URL'="$($webconsole+'/default.aspx#/health(targetid='+$data.id+')')"
+     $stateTable.Rows.Add($row)
+  }
+
+
+  	  				  If($object.InMaintenanceMode){$state='Inmaintenance'}
+						  ElseIf($object.IsAvailable -eq $false){$state='Unavailable'}Else{$state=$object.HealthState}
+
+
+  ### export all to SQL 
+
+  $SqlConDB=new-object System.Data.SqlClient.SqlConnection
+
+
+$connectionString= "Server=$sqlserver;Database=$sqldbname;Integrated Security =SSPI"
+				
+
+$SqlConDB.ConnectionString =$connectionString
+
+
+
+        Try
+        {
+        $SqlConDB.Open()
+        }
+        Catch [System.Exception]
+        {
+        $ex = $_.Exception
+  
+
+         $message=" Failed to connect SQL server $SqlServer and db $SQLDBname "
+      If($logging -eq $true)
+                {
+                 $api.LogScriptEvent("PerfSync",9993,1, $message)
+          }
+
+    If ($Mode -ne 'Rule')
+        {
+          write-host $message
+        }
+        }
+        
+
+IF($getPerf -eq $true)
+{
+$tablename=($scopedgroup -replace '[^0-9a-zA-Z ]').Replace(' ','')+"_PerfData"
+
+## First retrieve the old values  and compare 
+
+
+	$query=new-object System.Data.SqlClient.SqlCommand
+		$query.Connection=$SqlConDB
+		$query.CommandText="select * from [$tablename]"
+
+ Try
+        {
+        $sqlreader=$query.Executereader()
+        }
+        Catch [System.Exception]
+        {
+         $message=" $tablename not exists will be created "
+      If($logging -eq $true)
+                {
+                 $api.LogScriptEvent("PerfSync",9994,4, $message)
+          }
+
+    If ($Mode -ne 'Rule')
+        {
+          write-host $message
+        }
+
+
+        }
+		
+
+		$sourcetable = New-Object system.Data.DataTable
+
+		$sourcetable.load($sqlreader)
+
+##  then clean out the  old records in table
+
+
+$query=new-object System.Data.SqlClient.SqlCommand
+$query.Connection=$SqlConDB
+$query.CommandText="IF OBJECT_ID('"+$tableName+"', 'U') IS  NULL
+Begin
+CREATE TABLE  [$tableName](
+[ID] [nvarchar](512) NOT NULL,
+[Name] [nvarchar](max)  NULL,
+[HealthState] [nvarchar](50)  NULL,
+[hasData] [nvarchar](20)  NULL,
+[Object] [nvarchar](512)  NULL,
+[Count] [nvarchar](512)  NULL,
+[Instance] [nvarchar](512)  NULL,
+
+[SampleValue] [Float] NULL,
+[History] [nvarchar](max)  NULL,
+
+[synctime] [datetime] NULL
+) ON [PRIMARY]
+END
+Else
+truncate table   [$tableName]"
+
+
+
+
+#Add the Columns
+
+$ex=$null
+Try
+{
+$query.Executenonquery()
+}
+Catch [System.Exception]
+{
+
+
+
+}
+
+
+
+
+
+
+
+## Run bulkcopy  to copy data
+
+Try
+{
+$bulkCopy =  New-Object Data.SqlClient.SqlBulkCopy($connectionString, [System.Data.SqlClient.SqlBulkCopyOptions]::KeepIdentity)
+$bulkCopy.DestinationTableName = $tableName
+$bulkCopy.BatchSize = 1000
+$bulkCopy.BulkCopyTimeout = 60
+$bulkCopy.WriteToServer($perftable)
+}
+
+Catch [System.Exception]
+{
+$ex = $_.Exception
+$api = new-object -comObject 'MOM.ScriptAPI'
+
+
+     $message=" Bulkcopy to $SqlServer;$SQLDBname ;$tablename  failed with message $ex"
+      If($logging -eq $true)
+                {
+                 $api.LogScriptEvent("PerfSync",9997,1, $message)
+          }
+
+    If ($Mode -ne 'Rule')
+        {
+          write-host $message
+        }
+
+
+
+}
+
+}
+
+# state data 
+
+
+
+
+$tablename=($scopedgroup -replace '[^0-9a-zA-Z ]').Replace(' ','')+"_Statedata"
+
+
+
+$query=new-object System.Data.SqlClient.SqlCommand
+$query.Connection=$SqlConDB
+
+              $query.CommandText="IF OBJECT_ID('"+$tableName+"', 'U') IS  NULL
+              Begin
+              CREATE TABLE  $tableName(
+              [ID] [nvarchar](512) NOT NULL,
+              [URL] [nvarchar](512)  NULL,
+              [Name] [nvarchar](512) NULL,
+              [Fullname] [nvarchar](MAX)  NULL,
+                [Classname] [nvarchar](512)  NULL,
+               [HealthState] [nvarchar](50)  NULL,
+               [AvailabilityLastModified] [datetime] NULL,
+                       [synctime] [datetime] NULL
+              ) ON [PRIMARY]
+              END
+              Else
+              truncate table   $tableName"
+ 
+
+
+
+
+#Add the Columns
+
+$ex=$null
+Try
+{
+$query.Executenonquery()
+}
+Catch [System.Exception]
+{
+$ex = $_.Exception
+
+Write-host $ex
+
+
+}
+
+
+
+
+
+
+
+## Run bulkcopy  to copy data
+
+Try
+{
+$bulkCopy =  New-Object Data.SqlClient.SqlBulkCopy($connectionString, [System.Data.SqlClient.SqlBulkCopyOptions]::KeepIdentity)
+$bulkCopy.DestinationTableName = $tableName
+$bulkCopy.BatchSize = 1000
+$bulkCopy.BulkCopyTimeout = 60
+$bulkCopy.WriteToServer($statetable)
+}
+
+Catch [System.Exception]
+{
+$ex = $_.Exception
+$api = new-object -comObject 'MOM.ScriptAPI'
+
+
+     $message=" Bulkcopy to $SqlServer;$SQLDBname ;$tablename  failed with message $ex"
+      If($logging -eq $true)
+                {
+                 $api.LogScriptEvent("PerfSync",9997,1, $message)
+          }
+
+    If ($Mode -ne 'Rule')
+        {
+          write-host $message
+        }
+
+
+
+}
+
+
+
+
+
+
+
+#alert Data 
+
+IF($getalerts){
+
+$tablename=($scopedgroup -replace '[^0-9a-zA-Z ]').Replace(' ','')+"_Alerts"
+
+
+
+$AlertTable = New-Object System.Data.DataTable
+
+  $AlertTable.Columns.Add("ID")
+    $AlertTable.Columns.Add("Name")
+     $AlertTable.Columns.Add("MonitoringObjectPath")
+     $AlertTable.Columns.Add("Severity")
+      $AlertTable.Columns.Add("Priority")
+      $AlertTable.Columns.Add("Timeraised")
+      $AlertTable.Columns.Add("Resolutionstate")
+      $AlertTable.Columns.Add("SyncTime")
+
+
+
+  foreach ($data in $allalertssdk)
+  {
+     $row = $AlertTable.NewRow()
+     $row.'Id'=$data.ID
+     $row.'Name'=$data.Name
+     $row.'MonitoringObjectPath'=$data.MonitoringObjectPath
+     
+     $row.'Severity'=$data.Severity
+     $row.'Priority'=$data.Priority
+
+     $row.'TimeRaised'=$data.TimeRaised
+     $row.'ResolutionState'=$data.ResolutionState
+     $row.'SyncTime'=$synctime
+
+     $AlertTable.Rows.Add($row)
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+$query=new-object System.Data.SqlClient.SqlCommand
+$query.Connection=$SqlConDB
+$query.CommandText="IF OBJECT_ID('"+$tableName+"', 'U') IS  NULL
+Begin
+CREATE TABLE  [$tableName](
+[ID] [nvarchar](512) NOT NULL,
+[Name] [nvarchar](max)  NULL,
+[MonitoringObjectPath] [nvarchar](max)  NULL,
+[Severity] [nvarchar](50)  NULL,
+[Priority] [nvarchar](20)  NULL,
+[TimeRaised] [datetime] NULL,
+[ResolutionState] [Float]  NULL,
+[Synctime] [datetime] NULL
+
+) ON [PRIMARY]
+END
+Else
+truncate table   [$tableName]"
+
+
+
+
+#Add the Columns
+
+$ex=$null
+Try
+{
+$query.Executenonquery()
+}
+Catch [System.Exception]
+{
+
+$ex = $_.Exception
+Write-host $ex
+
+}
+
+
+
+
+
+
+
+## Run bulkcopy  to copy data
+
+Try
+{
+$bulkCopy =  New-Object Data.SqlClient.SqlBulkCopy($connectionString, [System.Data.SqlClient.SqlBulkCopyOptions]::KeepIdentity)
+$bulkCopy.DestinationTableName = $tableName
+$bulkCopy.BatchSize = 1000
+$bulkCopy.BulkCopyTimeout = 60
+$bulkCopy.WriteToServer($alerttable)
+}
+
+Catch [System.Exception]
+{
+$ex = $_.Exception
+$api = new-object -comObject 'MOM.ScriptAPI'
+
+
+     $message=" Bulkcopy to $SqlServer;$SQLDBname ;$tablename  failed with message $ex"
+      If($logging -eq $true)
+                {
+                 $api.LogScriptEvent("PerfSync",9997,1, $message)
+          }
+
+    If ($Mode -ne 'Rule')
+        {
+          write-host $message
+        }
+
+
+
+}
+
+
+}
+
+
+
+###end measure command
+
+
+
+####get DC health  details 
+
+$MonArray=@()
+$monarray+=$MonitorList.Split(',')
+
+
+
+
+
+    ## Preparing Monitors for HealtService Retrieval 
+           
+              $monitorstocheck=$null
+               $monitorstocheck=new-object "System.Collections.Generic.List[Microsoft.EnterpriseManagement.Configuration.ManagementPackMonitor]"
+
+
+              Get-SCOMMonitor -Name System.Health.ConfigurationState |foreach{$monitorstocheck.add($_)}
+               Get-SCOMMonitor -Name System.Health.SecurityState |foreach{$monitorstocheck.add($_)}
+               Get-SCOMMonitor -Name System.Health.PerformanceState  |foreach{$monitorstocheck.add($_)}
+                Get-SCOMMonitor -Name  System.Health.AvailabilityState |foreach{$monitorstocheck.add($_)}
+
+
+#$monarray|foreach{$monitorstocheck.add($_.Item)}
+
+Foreach($item in $monarray)
+{
+
+  Get-SCOMMonitor -Name  $item |foreach{$monitorstocheck.add($_)}
+
+
+
+}
+
+
+
+
+### REmove  uninitialized monitors 
+IF($Removedisabled -eq  $true)
+{
+$disabledmons=$dclist[0].GetMonitoringStates($monitorstocheck)|Where {$_.Healthstate -eq 'Uninitialized'}|select MonitorName
+
+Foreach($mon in $disabledmons)
+{
+
+$monitorstocheck.Remove(($monitorstocheck|where{$_.Name -eq $mon.MonitorName}))
+
+}
+}
+
+### Done 
+
+
+
+$HExpTable = New-Object System.Data.DataTable
+$HExpTable.Columns.Add("ServerName")|Out-Null
+$HExpTable.Columns.Add("OverallHealth")|Out-Null
+$HExpTable.Columns.Add("MonitorName")|Out-Null
+$HExpTable.Columns.Add("MonitorState")|Out-Null
+$HExpTable.Columns.Add("SyncTime")|Out-Null
+
+
+
+
+
+Foreach ($item  in $objects) 
+{
+ 
+ 
+ If($item.HealthState -eq 'success')
+ {
+ 
+ 
+               $row = $HExpTable.NewRow()
+               $row.'ServerName'=$item.DisplayName
+               $row.'OverallHealth'=$item.HealthState
+                    $row.'SyncTime'=$synctime
+                   $HExpTable.Rows.Add($row)
+
+
+
+ }
+ Else
+ {      
+              $HSOutput=$null                                
+              $HSOutput=$item.GetMonitoringStates($monitorstocheck)
+
+
+
+              Foreach ($mstate in $HSOutput|Where {$_.Healthstate -ne 'Success'})
+              {
+
+              
+               $row = $HExpTable.NewRow()
+               $row.'ServerName'=$item.DisplayName
+                  $row.'OverallHealth'=$item.HealthState
+
+              
+     $row.'MonitorName'=$mstate.MonitorDisplayName
+     $row.'MonitorState'=$mstate.HealthState
+
+         $row.'SyncTime'=$synctime
+                   $HExpTable.Rows.Add($row)
+
+
+              }
+
+              
+
+    }
+
+    
+    }
+
+
+
+
+
+
+
+
+
+
+## upload all to SQL
+$tablename=($scopedgroup -replace '[^0-9a-zA-Z ]').Replace(' ','')+"_HealthDetail"
+
+
+
+
+
+
+$query=new-object System.Data.SqlClient.SqlCommand
+$query.Connection=$SqlConDB
+$query.CommandText="IF OBJECT_ID('"+$tableName+"', 'U') IS  NULL
+Begin
+CREATE TABLE  [$tableName](
+ServerName       [nvarchar](max)  NOT NULL  ,                                                                                                                                      
+OverallHealth        [nvarchar](50)   NULL  ,  
+MonitorName        [nvarchar](Max)   NULL  ,  
+Monitorstate        [nvarchar](50)   NULL  ,  
+                                                                                                                                        
+[Synctime] [datetime] NULL
+
+
+
+) ON [PRIMARY]
+END
+Else
+truncate table   [$tableName]"
+
+
+
+
+#Add the Columns
+
+$ex=$null
+Try
+{
+$query.Executenonquery()
+}
+Catch [System.Exception]
+{
+
+$ex = $_.Exception
+Write-host $ex
+
+}
+
+
+
+
+
+
+
+## Run bulkcopy  to copy data
+
+Try
+{
+$bulkCopy =  New-Object Data.SqlClient.SqlBulkCopy($connectionString, [System.Data.SqlClient.SqlBulkCopyOptions]::KeepIdentity)
+$bulkCopy.DestinationTableName = $tableName
+$bulkCopy.BatchSize = 1000
+$bulkCopy.BulkCopyTimeout = 60
+$bulkCopy.WriteToServer($HExpTable)
+}
+
+Catch [System.Exception]
+{
+$ex = $_.Exception
+$api = new-object -comObject 'MOM.ScriptAPI'
+
+
+     $message=" Bulkcopy to $SqlServer;$SQLDBname ;$tablename  failed with message $ex"
+      If($logging -eq $true)
+                {
+                 $api.LogScriptEvent("DCDetailSync",9997,1, $message)
+          }
+
+    If ($Mode -ne 'Rule')
+        {
+          write-host $message
+        }
+
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+## We should always close the  SQL connections even the copy operation fails
+
+$SQLConnection.Close()
+$SqlConnection.Dispose()
+$SqlConDB.Close()
+$SqlConDB.Dispose()
+$bulkCopy.Close()
+
+
+
+
+			</ScriptBody>
+                <Parameters>
+                  <Parameter>
+                    <Name>SQLServer</Name>
+                    <Value>$Config/SQLServer$</Value>
+                  </Parameter>
+                  <Parameter>
+                    <Name>SQLDBName</Name>
+                    <Value>$Config/SQLDBName$</Value>
+                  </Parameter>
+                  <Parameter>
+                    <Name>ScopedGroup</Name>
+                    <Value>$Config/ScopedGroup$</Value>
+                  </Parameter>
+                  <Parameter>
+                    <Name>MonitorList</Name>
+                    <Value>$Config/MonitorList$</Value>
+                  </Parameter>
+                  <Parameter>
+                    <Name>Mode</Name>
+                    <Value>$Config/Mode$</Value>
+                  </Parameter>
+                </Parameters>
+                <TimeoutSeconds>$Config/TimeoutSeconds$</TimeoutSeconds>
+              </WriteAction>
+            </MemberModules>
+            <Composition>
+              <Node ID="MSDashboards.CustomWA" />
+            </Composition>
+          </Composite>
+        </ModuleImplementation>
+        <OutputType>System!System.BaseData</OutputType>
+        <InputType>System!System.BaseData</InputType>
+      </WriteActionModuleType>
+      <WriteActionModuleType ID="MSDashboards.Custom.SDK.Generic.WAType.v2" Accessibility="Public" Batching="false">
+        <Configuration>
+          <xsd:element minOccurs="1" name="ScriptName" type="xsd:string" xmlns:xsd="http://www.w3.org/2001/XMLSchema" />
+          <xsd:element minOccurs="0" name="SQLServer" type="xsd:string" xmlns:xsd="http://www.w3.org/2001/XMLSchema" />
+          <xsd:element minOccurs="0" name="SQLDBName" type="xsd:string" xmlns:xsd="http://www.w3.org/2001/XMLSchema" />
+          <xsd:element minOccurs="0" name="ScopedGroup" type="xsd:string" xmlns:xsd="http://www.w3.org/2001/XMLSchema" />
+          <xsd:element minOccurs="0" name="Mode" type="xsd:string" xmlns:xsd="http://www.w3.org/2001/XMLSchema" />
+          <xsd:element minOccurs="1" name="GetAlerts" type="xsd:boolean" xmlns:xsd="http://www.w3.org/2001/XMLSchema" />
+          <xsd:element minOccurs="1" name="Logging" type="xsd:boolean" xmlns:xsd="http://www.w3.org/2001/XMLSchema" />
+          <xsd:element minOccurs="1" name="TimeoutSeconds" type="xsd:integer" xmlns:xsd="http://www.w3.org/2001/XMLSchema" />
+        </Configuration>
+        <OverrideableParameters>
+          <OverrideableParameter ID="SQLServer" Selector="$Config/SQLServer$" ParameterType="string" />
+          <OverrideableParameter ID="SQLDBName" Selector="$Config/SQLDBName$" ParameterType="string" />
+          <OverrideableParameter ID="ScopedGroup" Selector="$Config/ScopedGroup$" ParameterType="string" />
+          <OverrideableParameter ID="Mode" Selector="$Config/Mode$" ParameterType="string" />
+          <OverrideableParameter ID="GetAlerts" Selector="$Config/GetAlerts$" ParameterType="bool" />
+          <OverrideableParameter ID="Logging" Selector="$Config/Logging$" ParameterType="bool" />
+          <OverrideableParameter ID="TimeoutSeconds" Selector="$Config/TimeoutSeconds$" ParameterType="decimal" />
+        </OverrideableParameters>
+        <ModuleImplementation Isolation="Any">
+          <Composite>
+            <MemberModules>
+              <WriteAction ID="MSDashboards.CustomWA" TypeID="Windows!Microsoft.Windows.PowerShellWriteAction">
+                <ScriptName>$Config/ScriptName$</ScriptName>
+                <ScriptBody>Param($SQLserver,$SQLDBName,$ScopedGroup,$GetAlerts,$Logging)
+#Connect to MG
+#Load OpsMgr 2012 SDK DLLs 
+[System.Reflection.Assembly]::LoadWithPartialName('Microsoft.EnterpriseManagement.OperationsManager.Common') | Out-Null
+[System.Reflection.Assembly]::LoadWithPartialName('Microsoft.EnterpriseManagement.OperationsManager') | Out-Null
+
+IF($logging)
+{ 
+$log+=" Started running rule for group $scopedgroup  at $(get-date)"
+
+}
+
+# Discover module path and  import scom module 
+$Scomreg=Get-ItemProperty "hklm:\software\microsoft\Microsoft operations manager\3.0\setup"
+$insdir=$scomreg.InstallDirectory.ToString().Substring(0,$scomreg.InstallDirectory.ToString().indexof("Server\"))
+$modulepath=$insdir+'Powershell\OperationsManager\OperationsManager.psm1'
+$error.clear()
+import-module $modulepath
+$log=@()
+
+#if sql server not specified in rule we will use the server hosting DW
+
+IF(!$SqlServer){$SQLServer=$scomreg.DataWarehouseDBServerName}
+IF(!$SQLDBname){$SQLDBname='EnterpriseDashboards'}
+$strComputer=get-content env:computername
+IF($logging)
+	{ 
+		$log+=" Modulepath for  SCOM : $modulepath"
+		if(!$error){$log+=" Scom module loaded successfully"}else{$log+="Failed to load module error code : $($error[0].ToString())"}
+		$log+=" Script will use  sqlserver : $sqlserver  , db : $SQLDBname and group $scopedgroup "
+	}
+
+#How to get the members of a group
+
+$gr=get-scomgroup|where{$_.DisplayName -eq $ScopedGroup }
+
+IF($logging)
+	{ 
+		if ($gr) {$log+=" Group found in SCOM"}Else 
+		{{$log+=" Group not found , make sure create the override and specify the scoped group "}}
+	}
+
+$error.Clear()
+
+$mem=$gr.GetRelatedPartialMonitoringObjects()    ## its faster to get partialobjects 
+
+IF($logging)
+	{ 
+		if(!$error){$log+=" loaded all objects from group , $($mem.count) objects found"}else{$log+="Failed to objects . error msg$($error[0].ToString())"}
+	}
+
+$synctime=(get-date).ToString("yyyy-MM-dd HH:mm")
+$start=get-date 
+$endTime = [DateTime]::UtcNow
+$timeDiff = [TimeSpan]::FromHours(2)
+$startTime = $endTime - $timeDiff
+
+$SqlConnection=new-object System.Data.SqlClient.SqlConnection
+$connectionString = "Server="+$($Scomreg.DatabaseServerName)+";Database="+$($Scomreg.DatabaseName)+";Integrated Security =SSPI"
+$SqlConnection.ConnectionString =$connectionString
+			
+Try
+	{
+		$SqlConnection.Open()
+	}
+Catch [System.Exception]
+	{
+		$ex = $_.Exception
+		$api = new-object -comObject 'MOM.ScriptAPI'
+		$exmessage=$SqlConnection.ConnectionString+':'+$ex
+		$api.LogScriptEvent("SQLCannotOPENDB",9004,2, $exmessage)
+		IF($logging)
+			{ 
+				$log+=" Failed to connect SQL   error msg : $exmessage"
+			}
+	}
+Finally
+	{
+	}
+
+#Get the state of each member of the group 
+#$objects=$mem.id|Get-SCOMClassInstance
+
+$stateTable = New-Object System.Data.DataTable
+$statetable.Columns.Add("ID")
+$statetable.Columns.Add("Name")
+$statetable.Columns.Add("Path")
+$statetable.Columns.Add("Fullname")
+$statetable.Columns.Add("classname")
+$statetable.Columns.Add("FinalClassname")
+$statetable.Columns.Add("HealthState")
+$statetable.Columns.Add("AvailabilityLastModified")
+$statetable.Columns.Add("Synctime")
+
+$pk = $statetable.Columns["ID"]
+$statetable.PrimaryKey = $pk
+	
+foreach ($data in $mem)
+	{
+		$row = $stateTable.NewRow()
+		$row.'Id'=$data.ID
+		$row.'Name'=$data.DisplayName
+		$row.'Path'=$data.Path
+		$row.'Fullname'=$data.Fullname
+	    $row.'FinalClassname'=($data.getclasses()[$data.GetClasses().count-1]).Name
+		
+#fix for SQL 2016 classname 
+		if ($row.'FinalClassname' -eq 'Microsoft.SQLServer.2016.DBEngine')
+			{$row.'Classname' = 'Microsoft.SQLServer.DBEngine'}
+		else {$row.'classname'=$data.Fullname.Substring(0,$data.Fullname.IndexOf(":"))}
+		
+        if($data.InMaintenanceMode){$row.'HealthState'='InMaintenance'}
+        Elseif($data.IsAvailable -match 'False'){$row.'HealthState'='Unavailable'}Else
+			{$row.'HealthState'=$data.HealthState}  
+		$row.'AvailabilityLastModified'=$data.AvailabilityLastModified
+		$row.'SyncTime'=$synctime
+#fix up  Name for OS instances 
+        if 	($row.'Classname'  -eq 'Microsoft.Windows.OperatingSystem')
+			{$row.'Name'=$data.Path}
+
+    	$stateTable.Rows.Add($row)
+	}
+  
+# export all to SQL 
+$SqlConDB=new-object System.Data.SqlClient.SqlConnection
+$connectionString= "Server=$sqlserver;Database=$sqldbname;Integrated Security =SSPI"
+$SqlConDB.ConnectionString =$connectionString
+    Try
+		{
+            $SqlConDB.Open()
+        }
+	Catch [System.Exception]
+        {
+            $ex = $_.Exception
+			$message=" Failed to connect SQL server $SqlServer and db $SQLDBname "
+			If($logging -eq $true)
+                {
+                    $api.LogScriptEvent("PerfSync",9993,1, $message)
+                }
+  
+			IF($logging)
+				{ 
+					$log+=" Failed to connect SQL   error msg : $message"
+				}
+			If ($Mode -ne 'Rule')
+				{			
+					write-host $message
+				}
+        }
+        
+# state data 
+$tablename=($scopedgroup -replace '[^0-9a-zA-Z ]').Replace(' ','')+"_Statedata"
+$query=new-object System.Data.SqlClient.SqlCommand
+$query.Connection=$SqlConDB
+$query.CommandText="IF OBJECT_ID('"+$tableName+"', 'U') IS  NULL
+			  Begin
+              CREATE TABLE  $tableName(
+              [ID] [nvarchar](512) NOT NULL,
+              [Name] [nvarchar](512) NULL,
+              [Path] [nvarchar](512) NULL,
+              [Fullname] [nvarchar](MAX)  NULL,
+              [Classname] [nvarchar](MAX)  NULL,
+              [FinalClassname] [nvarchar](MAX)  NULL,
+              [HealthState] [nvarchar](50)  NULL,
+              [AvailabilityLastModified] [datetime] NULL,
+              [synctime] [datetime] NULL
+              ) ON [PRIMARY]
+              END
+              Else
+              truncate table   $tableName"
+ 
+#Add the Columns
+$ex=$null
+Try
+    {
+        $query.Executenonquery()
+    }
+Catch [System.Exception]
+    {
+        $ex = $_.Exception
+        Write-host $ex
+        IF($logging)
+		{ 
+			$log+=" Failed to run sql query : $ex"
+		}
+    }
+
+## Run bulkcopy  to copy data
+
+Try
+    {
+        $bulkCopy =  New-Object Data.SqlClient.SqlBulkCopy($connectionString, [System.Data.SqlClient.SqlBulkCopyOptions]::KeepIdentity)
+        $bulkCopy.DestinationTableName = $tableName
+        $bulkCopy.BatchSize = 1000
+        $bulkCopy.BulkCopyTimeout = 60
+        $bulkCopy.WriteToServer($statetable)
+    }
+Catch [System.Exception]
+    {
+    $ex = $_.Exception
+    $api = new-object -comObject 'MOM.ScriptAPI'
+	$message=" Bulkcopy to $SqlServer;$SQLDBname ;$tablename  failed with message $ex"
+	If($logging -eq $true)
+		{$api.LogScriptEvent("$Scopedgroup StateSync",9997,1, $message)
+			$log+=" Bulkcopy to $SqlServer;$SQLDBname ;$tablename  failed with message $ex"
+		}
+			If ($Mode -ne 'Rule') {write-host $message}
+				}
+$end=get-date 
+       
+IF($logging)
+	{ 
+		$api.LogScriptEvent("$ScopedGroup.Sync.Ps1",9998,4, "$ScopedGroup sync finished in $(($end-$start).totalseconds)  seconds")
+		$log+=" $ScopedGroup sync finished in $(($end-$start).totalseconds)  seconds "
+	}
+
+#get alert data
+
+if($getalerts){
+	$alerts=$mem|get-scomalert -ResolutionState 0|?{$_.severity -ne 0}
+	$tablename=($scopedgroup -replace '[^0-9a-zA-Z ]').Replace(' ','')+"_Alerts"
+	$AlertTable = New-Object System.Data.DataTable
+	$AlertTable.Columns.Add("ID")
+	$AlertTable.Columns.Add("Name")
+	$AlertTable.Columns.Add("MonitoringObjectPath")
+	$AlertTable.Columns.Add("Severity")
+	$AlertTable.Columns.Add("Priority")
+	$AlertTable.Columns.Add("Timeraised")
+	$AlertTable.Columns.Add("Resolutionstate")
+	$AlertTable.Columns.Add("SyncTime")
+	foreach ($data in $alerts)
+		{
+			$row = $AlertTable.NewRow()
+			$row.'Id'=$data.ID
+			$row.'Name'=$data.Name
+			$row.'MonitoringObjectPath'=$data.MonitoringObjectPath
+			$row.'Severity'=$data.Severity
+			$row.'Priority'=$data.Priority
+			$row.'TimeRaised'=$data.TimeRaised
+			$row.'ResolutionState'=$data.ResolutionState
+			$row.'SyncTime'=$synctime
+			$AlertTable.Rows.Add($row)
+		}				
+	$query=new-object System.Data.SqlClient.SqlCommand
+	$query.Connection=$SqlConDB
+	$query.CommandText="IF OBJECT_ID('"+$tableName+"', 'U') IS  NULL
+                Begin
+                CREATE TABLE  [$tableName](
+                [ID] [nvarchar](512) NOT NULL,
+                [Name] [nvarchar](max)  NULL,
+                [MonitoringObjectPath] [nvarchar](max)  NULL,
+                [Severity] [nvarchar](50)  NULL,
+                [Priority] [nvarchar](20)  NULL,
+                [TimeRaised] [datetime] NULL,
+                [ResolutionState] [Float]  NULL,
+                [Synctime] [datetime] NULL
+
+                ) ON [PRIMARY]
+                END
+                Else
+                truncate table   [$tableName]"
+
+#Add the Columns
+
+    $ex=$null
+    Try
+		{
+            $query.Executenonquery()
+        }
+            Catch [System.Exception]
+		{
+            $ex = $_.Exception
+            Write-host $ex
+        }
+
+## Run bulkcopy  to copy data
+
+    Try
+        {
+            $bulkCopy =  New-Object Data.SqlClient.SqlBulkCopy($connectionString, [System.Data.SqlClient.SqlBulkCopyOptions]::KeepIdentity)
+            $bulkCopy.DestinationTableName = $tableName
+            $bulkCopy.BatchSize = 1000
+            $bulkCopy.BulkCopyTimeout = 60
+            $bulkCopy.WriteToServer($alerttable)
+        }
+    Catch [System.Exception]
+        {
+            $ex = $_.Exception
+            $api = new-object -comObject 'MOM.ScriptAPI'
+            $message=" Bulkcopy to $SqlServer;$SQLDBname ;$tablename  failed with message $ex"
+            If($logging -eq $true)
+                {
+                    $api.LogScriptEvent("$Scopedgroup AlertSync",9997,1, $message)
+                }
+            If ($Mode -ne 'Rule')
+                {
+                    write-host $message
+                }
+		}
+
+    }
+
+
+## We should always close the  SQL connections even the copy operation fails
+
+$SQLConnection.Close()
+$SqlConnection.Dispose()
+$SqlConDB.Close()
+$SqlConDB.Dispose()
+$bulkCopy.Close()
+$end=get-date
+
+IF($logging)
+	{ 
+		$api.LogScriptEvent("$ScopedGroup.Sync.Ps1",9998,4, "$ScopedGroup sync finished in $(($end-$start).totalseconds)  seconds")
+		$log+=" $ScopedGroup sync finished in $(($end-$start).totalseconds)  seconds "
+		$logfile="c:\tmp\DB_sync_Rule_$scopedgroup.log"
+#adding state table  this is the table written to database
+		$log+=" -----------------------------------"
+		$log+=" "
+		$log+=" "
+		$log+=" Exporting the whole state table , this table is the one written to the database "
+		$log+=$statetable
+If(test-path 'C:\tmp')
+	{
+		$log|out-file -FilePath $logfile
+	}
+Else
+	{
+		md c:\tmp
+		$log|out-file -FilePath $logfile
+	}
+
+	}
+	</ScriptBody>
+                <Parameters>
+                  <Parameter>
+                    <Name>SQLServer</Name>
+                    <Value>$Config/SQLServer$</Value>
+                  </Parameter>
+                  <Parameter>
+                    <Name>SQLDBName</Name>
+                    <Value>$Config/SQLDBName$</Value>
+                  </Parameter>
+                  <Parameter>
+                    <Name>ScopedGroup</Name>
+                    <Value>$Config/ScopedGroup$</Value>
+                  </Parameter>
+                  <Parameter>
+                    <Name>Logging</Name>
+                    <Value>$Config/Logging$</Value>
+                  </Parameter>
+                  <Parameter>
+                    <Name>Mode</Name>
+                    <Value>$Config/Mode$</Value>
+                  </Parameter>
+                  <Parameter>
+                    <Name>GetAlerts</Name>
+                    <Value>$Config/GetAlerts$</Value>
+                  </Parameter>
+                </Parameters>
+                <TimeoutSeconds>$Config/TimeoutSeconds$</TimeoutSeconds>
+              </WriteAction>
+            </MemberModules>
+            <Composition>
+              <Node ID="MSDashboards.CustomWA" />
+            </Composition>
+          </Composite>
+        </ModuleImplementation>
+        <OutputType>System!System.BaseData</OutputType>
+        <InputType>System!System.BaseData</InputType>
+      </WriteActionModuleType>
+      <WriteActionModuleType ID="MSDashboards.Custom.SDK.Generic.WAType.v3" Accessibility="Public" Batching="false">
+        <Configuration>
+          <xsd:element minOccurs="1" name="ScriptName" type="xsd:string" xmlns:xsd="http://www.w3.org/2001/XMLSchema" />
+          <xsd:element minOccurs="0" name="SQLServer" type="xsd:string" xmlns:xsd="http://www.w3.org/2001/XMLSchema" />
+          <xsd:element minOccurs="0" name="SQLDBName" type="xsd:string" xmlns:xsd="http://www.w3.org/2001/XMLSchema" />
+          <xsd:element minOccurs="0" name="GroupList" type="xsd:string" xmlns:xsd="http://www.w3.org/2001/XMLSchema" />
+          <xsd:element minOccurs="0" name="Mode" type="xsd:string" xmlns:xsd="http://www.w3.org/2001/XMLSchema" />
+          <xsd:element minOccurs="1" name="GetAlerts" type="xsd:boolean" xmlns:xsd="http://www.w3.org/2001/XMLSchema" />
+          <xsd:element minOccurs="0" name="GetMonitorTree" type="xsd:boolean" xmlns:xsd="http://www.w3.org/2001/XMLSchema" />
+          <xsd:element minOccurs="1" name="Logging" type="xsd:boolean" xmlns:xsd="http://www.w3.org/2001/XMLSchema" />
+          <xsd:element minOccurs="1" name="TimeoutSeconds" type="xsd:integer" xmlns:xsd="http://www.w3.org/2001/XMLSchema" />
+        </Configuration>
+        <OverrideableParameters>
+          <OverrideableParameter ID="SQLServer" Selector="$Config/SQLServer$" ParameterType="string" />
+          <OverrideableParameter ID="SQLDBName" Selector="$Config/SQLDBName$" ParameterType="string" />
+          <OverrideableParameter ID="GroupList" Selector="$Config/GroupList$" ParameterType="string" />
+          <OverrideableParameter ID="Mode" Selector="$Config/Mode$" ParameterType="string" />
+          <OverrideableParameter ID="GetAlerts" Selector="$Config/GetAlerts$" ParameterType="bool" />
+          <OverrideableParameter ID="GetMonitorTree" Selector="$Config/GetMonitorTree$" ParameterType="bool" />
+          <OverrideableParameter ID="Logging" Selector="$Config/Logging$" ParameterType="bool" />
+          <OverrideableParameter ID="TimeoutSeconds" Selector="$Config/TimeoutSeconds$" ParameterType="decimal" />
+        </OverrideableParameters>
+        <ModuleImplementation Isolation="Any">
+          <Composite>
+            <MemberModules>
+              <WriteAction ID="MSDashboards.CustomWA" TypeID="Windows!Microsoft.Windows.PowerShellWriteAction">
+                <ScriptName>$Config/ScriptName$</ScriptName>
+                <ScriptBody>
+Param($SQLserver,$SQLDBName,$GroupList,$GetAlerts,$GetMonitorTree,$Logging)
+
+
+
+#Connect to MG
+#Load OpsMgr 2012 SDK DLLs
+[System.Reflection.Assembly]::LoadWithPartialName("Microsoft.EnterpriseManagement") | Out-Null
+[System.Reflection.Assembly]::LoadWithPartialName('Microsoft.EnterpriseManagement.OperationsManager') | Out-Null
+[System.Reflection.Assembly]::LoadWithPartialName('Microsoft.EnterpriseManagement.OperationsManager.Common') | Out-Null
+[System.Reflection.Assembly]::LoadWithPartialName('Microsoft.EnterpriseManagement.ConnectorFramework')| Out-Null
+$api = new-object -comObject 'MOM.ScriptAPI'
+
+$progresslog=''
+$start=get-date
+$message="Starting Dashboard Sync Rule with Parameters :SQLserver=$SQLserver, SQLDBName=$SQLDBName,GroupList=$GroupList, GetAlerts=$GetAlerts, GetMonitorTree=$GetMonitorTree, Logging=$Logging"
+$api.LogScriptEvent("DashboardAllinOneSync",9995,4, $message)
+
+$progresslog+=$message+"`r`n"
+
+$Scomreg=Get-ItemProperty "hklm:\software\microsoft\Microsoft operations manager\3.0\setup"
+$insdir=$scomreg.InstallDirectory.ToString().Substring(0,$scomreg.InstallDirectory.ToString().indexof("Server\"))
+$modulepath=$insdir+'Powershell\OperationsManager\OperationsManager.psm1'
+
+get-ChildItem -Path $insdir"\server\SDK Binaries"   -filter *.dll -Recurse|foreach{
+$dll=$_.FullName
+Add-Type -Path $dll
+}                                        
+
+Write-Verbose "Connecting to Management Group via SDK $SDK`..."
+$MGConnSetting = New-Object Microsoft.EnterpriseManagement.ManagementGroupConnectionSettings("localhost")
+$MG = New-Object Microsoft.EnterpriseManagement.ManagementGroup($MGConnSetting)
+
+
+IF(!$MG)
+{
+$message="Failed to establish management group connection , check the SDK service status"
+$api.LogScriptEvent("DashboardAllinOneSync",9996,2, $message)
+}Else
+{
+
+    $message="Successfully connected to  SDK service status"
+    write-output $message
+}
+
+$progresslog+=$message+"`r`n"
+
+#after this is SDK Connector 
+
+
+$classes=$mg.EntityTypes.GetClasses()
+
+#get objects from group 
+
+#region prep Runspace 
+
+$hash = [hashtable]::Synchronized(@{})
+$hash['Host']=$host
+$hash['debuglog']=$true
+$hash['logTracker']=@()
+$hash['progresslog']=$progresslog
+
+$Throttle = [int][System.Environment]::ProcessorCount+1  #threads
+$sessionstate = [system.management.automation.runspaces.initialsessionstate]::CreateDefault()
+$runspacepool = [runspacefactory]::CreateRunspacePool(1, $Throttle, $sessionstate, $Host)
+$runspacepool.Open() 
+[System.Collections.ArrayList]$Jobs = @()
+
+#endregion
+
+#actual script 
+$scriptBlock={
+
+Param ($hash,$group,$rsid,$SQLserver,$SQLDBName,$Logging)
+
+#Connect to MG
+#Load OpsMgr 2012 SDK DLLs
+[System.Reflection.Assembly]::LoadWithPartialName("Microsoft.EnterpriseManagement") | Out-Null
+[System.Reflection.Assembly]::LoadWithPartialName('Microsoft.EnterpriseManagement.OperationsManager') | Out-Null
+[System.Reflection.Assembly]::LoadWithPartialName('Microsoft.EnterpriseManagement.OperationsManager.Common') | Out-Null
+[System.Reflection.Assembly]::LoadWithPartialName('Microsoft.EnterpriseManagement.OperationsManager') | Out-Null
+[System.Reflection.Assembly]::LoadWithPartialName('Microsoft.EnterpriseManagement.ConnectorFramework')| Out-Null
+$api = new-object -comObject 'MOM.ScriptAPI'
+
+$evtsrcname="DashboardSync"+$group.replace(' ','')
+
+$message="Starting runspace $rsid for $group  "
+$api.LogScriptEvent($evtsrcname,9997,4, $message)
+
+$hash['progresslog']+=$message+"`r`n"
+
+$Scomreg=Get-ItemProperty "hklm:\software\microsoft\Microsoft operations manager\3.0\setup"
+$insdir=$scomreg.InstallDirectory.ToString().Substring(0,$scomreg.InstallDirectory.ToString().indexof("Server\"))
+$modulepath=$insdir+'Powershell\OperationsManager\OperationsManager.psm1'
+get-ChildItem -Path $insdir"\server\SDK Binaries"   -filter *.dll -Recurse|foreach{
+$dll=$_.FullName
+Add-Type -Path $dll
+}   
+										
+Write-Verbose "Connecting to Management Group via SDK $SDK`..."
+$MGConnSetting = New-Object Microsoft.EnterpriseManagement.ManagementGroupConnectionSettings("localhost")
+$MG = New-Object Microsoft.EnterpriseManagement.ManagementGroup($MGConnSetting)
+$api = new-object -comObject 'MOM.ScriptAPI'
+
+$classes=$mg.EntityTypes.GetClasses()
+
+#get objects from group 
+$ScopedGroup=$group
+
+IF($group -eq 'Windows Dashboard Group')
+{
+$getmonitortree=$false
+}Else
+{
+$getmonitortree=$true
+}
+
+$synctime=(get-date).ToString("yyyy-MM-dd HH:mm")
+
+$filter ="DisplayName='"+$ScopedGroup +"'"
+$criteria =new-object Microsoft.EnterpriseManagement.Monitoring.MonitoringObjectGenericCriteria($filter);
+$grp=$mg.GetMonitoringObjects($criteria);
+
+[guid]$guid=($grp.id).Guid
+[Type[]]$MethodType2 = ([Guid],[Microsoft.EnterpriseManagement.Common.TraversalDepth],[Microsoft.EnterpriseManagement.Common.ObjectQueryOptions])
+$method2 = $mg.EntityObjects.GetType().GetMethod("GetRelatedObjects",$Methodtype2)
+$genericMethod2 = $method2.MakeGenericMethod([Microsoft.EnterpriseManagement.Monitoring.PartialMonitoringObject])
+
+$objects = $genericMethod2.Invoke($mg.EntityObjects, ($guid,[Microsoft.EnterpriseManagement.Common.TraversalDepth]::OneLevel, [Microsoft.EnterpriseManagement.Common.ObjectQueryOptions]::Default))
+
+if($Logging)
+{
+$message=" $($objects.count) objects found in $scopedgroup "
+$api.LogScriptEvent($evtsrcname,9998,4, $message)
+$hash['progresslog']+=$message+"`r`n"
+}
+
+IF($objects)
+{
+##populate state data 
+
+$StateTable = New-Object System.Data.DataTable
+$statetable.Columns.Add("ID") |out-null
+$statetable.Columns.Add("Name")|out-null
+$statetable.Columns.Add("Path")|out-null
+$statetable.Columns.Add("Fullname")|out-null
+$statetable.Columns.Add("Classname")|out-null
+$statetable.Columns.Add("FinalClassname")|out-null
+$statetable.Columns.Add("HealthState")|out-null
+$statetable.Columns.Add("AvailabilityLastModified")|out-null
+$statetable.Columns.Add("Synctime")|out-null
+
+foreach ($data in $objects)
+{
+
+	$row = $stateTable.NewRow()
+	$row.'Id'=$data.ID
+	$row.'Name'=$data.DisplayName
+	IF($data.Path){$row.'Path'=$data.Path}else{$row.'Path'=$data.DisplayName}
+	$row.'Fullname'=$data.Fullname
+	IF($data.Fullname.IndexOf(":") -gt 0 )	{$row.'classname'=$data.Fullname.Substring(0,$data.Fullname.IndexOf(":"))}
+	else{$row.'classname'=$data.Fullname}
+	#fix for SQL 2016 classname 
+	if ($row.'FinalClassname' -eq 'Microsoft.SQLServer.2016.DBEngine')
+	{$row.'Classname' = 'Microsoft.SQLServer.DBEngine'}
+	$row.'FinalClassname'=($data.getclasses()[$data.GetClasses().count-1]).Name
+	If($data.InMaintenanceMode){$row.'HealthState'='InMaintenance'}
+	Elseif($data.IsAvailable -match 'False'){$row.'HealthState'='Unavailable'}Else
+	{$row.'HealthState'=$data.HealthState}  
+	$row.'AvailabilityLastModified'=$data.AvailabilityLastModified
+	$row.'SyncTime'=$synctime
+	$stateTable.Rows.Add($row)
+
+}
+
+# rewrite path  for  Health Service watchers 
+
+$stateTable|where {$_.Classname -match 'Microsoft.SystemCenter.HealthService'}|foreach{
+$_.Path = $_.Name     #  updating path so  all objects have fqdn in their path
+}
+
+
+
+
+#populate Monitor Tree
+
+If($getmonitortree)
+{
+$allstates=@()
+$allstart=Get-date
+$n=1
+foreach($obj in $objects)
+{
+	$start=get-date
+	#if($obj.name){$name=$obj.name}Else{$name=$obj.Path}
+	
+	if($obj.path -eq 'Microsoft.SystemCenter.AgentWatchersGroup'){$name=$obj.Displayname}
+	Elseif($obj.Path -eq $obj.Name){$name=$obj.Path}Elseif($obj.Path){$name=$obj.Path+"/"+$obj.name} Elseif($obj.name){$name=$obj.name}Else{$name=$obj.Displayname}
+	$st=$obj.GetMonitoringStateHierarchy()
+	#$st.item |select MonitorName,MonitorDisplayName,HealthState
+
+		$allstates += new-object pscustomobject -Property @{
+			Name=$name
+			Class=$obj.LeastDerivedNonAbstractMonitoringClassId
+			MonitorName=$st.item.MonitorName
+			MonitorDisplayName=$st.item.MonitorDisplayName
+			Monitorid=$st.Item.MonitorId.Guid
+			HealthState=$st.item.HealthState
+			LastTimeModified=$st.item.LastTimeModified
+			MonitorTargetMonitoringClassId=$st.item.MonitorTargetMonitoringClassId
+			Host=$name
+				}
+
+
+	if ($st.ChildNodes)
+	{
+
+		foreach ($node1 in $st.ChildNodes)
+		{
+		#$node1.item |select MonitorName,MonitorDisplayName,HealthState
+				$allstates += new-object pscustomobject -Property @{
+		Name=$name
+		Class=$obj.LeastDerivedNonAbstractMonitoringClassId
+		Parentnode=$node1.ParentNode.item.MonitorName
+		ParentID=$node1.ParentNode.item.Id.guid
+		Level=1
+		MonitorName=$node1.item.MonitorDisplayName
+		MonitorDisplayName=$node1.item.MonitorDisplayName
+		Monitorid=$node1.Item.MonitorId.Guid
+		HealthState=$node1.item.HealthState
+		LastTimeModified=$node1.item.LastTimeModified
+		MonitorTargetMonitoringClassId=$node1.item.MonitorTargetMonitoringClassId
+		Host=$name
+		}
+
+		IF($node1.ChildNodes)
+		{
+			foreach ($node2 in $node1.ChildNodes)
+			{
+				#$node2.item |select MonitorName,MonitorDisplayName,HealthState
+					$allstates += new-object pscustomobject -Property @{
+					Name=$name
+					Class=$obj.LeastDerivedNonAbstractMonitoringClassId
+					Parentnode=$node2.ParentNode.item.MonitorName
+					ParentID=$node2.ParentNode.item.Id.guid
+					Level=2
+					MonitorName=$node2.item.MonitorName
+					MonitorDisplayName=$node2.item.MonitorDisplayName
+					Monitorid=$node2.Item.MonitorId.Guid
+					HealthState=$node2.item.HealthState
+					LastTimeModified=$node2.item.LastTimeModified
+					MonitorTargetMonitoringClassId=$node2.item.MonitorTargetMonitoringClassId
+					Host=$name
+					}
+					IF($node2.ChildNodes)
+					{
+						foreach ($node3 in $node2.ChildNodes)
+						{
+								$allstates += new-object pscustomobject -Property @{
+								Name=$name
+								Class=$obj.LeastDerivedNonAbstractMonitoringClassId
+								Parentnode=$node3.ParentNode.item.MonitorName
+								ParentID=$node3.ParentNode.item.Id.guid
+								Level=3
+								MonitorName=$node3.item.MonitorName
+								MonitorDisplayName=$node3.item.MonitorDisplayName
+								Monitorid=$node3.Item.MonitorId.Guid
+								HealthState=$node3.item.HealthState
+								LastTimeModified=$node3.item.LastTimeModified
+								MonitorTargetMonitoringClassId=$node3.item.MonitorTargetMonitoringClassId
+								Host=$name
+								}
+									IF($node3.ChildNodes)
+								{
+									foreach ($node4 in $node3.ChildNodes)
+									{
+											$allstates += new-object pscustomobject -Property @{
+											Name=$name
+											Class=$obj.LeastDerivedNonAbstractMonitoringClassId
+											Parentnode=$node4.ParentNode.item.MonitorName
+											ParentID=$node4.ParentNode.item.Id.guid
+											Level=4
+											MonitorName=$node4.item.MonitorName
+											MonitorDisplayName=$node4.item.MonitorDisplayName
+											Monitorid=$Node4.Item.MonitorId.Guid
+											HealthState=$node4.item.HealthState
+											LastTimeModified=$node4.item.LastTimeModified
+											MonitorTargetMonitoringClassId=$node4.item.MonitorTargetMonitoringClassId
+											Host=$name
+											}
+											If($node4.ChildNodes)
+											{
+											#  write-warning " 5th level required"
+												foreach ($node5 in $node4.ChildNodes)
+									{
+											$allstates += new-object pscustomobject -Property @{
+											Name=$name
+											Class=$obj.LeastDerivedNonAbstractMonitoringClassId
+											Parentnode=$node5.ParentNode.item.MonitorName
+											ParentID=$node5.ParentNode.item.Id.guid
+											Level=5
+											MonitorName=$node5.item.MonitorName
+											MonitorDisplayName=$node5.item.MonitorDisplayName
+											Monitorid=$Node5.Item.MonitorId.Guid
+											HealthState=$node5.item.HealthState
+											LastTimeModified=$node5.item.LastTimeModified
+											MonitorTargetMonitoringClassId=$node5.item.MonitorTargetMonitoringClassId
+											Host=$name
+											}
+											If($node5.ChildNodes)
+											{
+												write-warning " 6th level required"
+											}
+									}
+											}
+									}
+
+
+								}
+						}
+
+
+					}
+			}
+
+
+		}
+
+	}
+
+}
+}
+
+$allunhealthy=$allstates|Where {$_.healthstate -ne 'Uninitialized' -and $_.healthstate -ne 'Success'}
+
+$monTable = New-Object System.Data.DataTable
+$monTable.Columns.Add("ID")|out-null
+$monTable.Columns.Add("Name")|out-null
+$monTable.Columns.Add("MonitorName")|out-null
+$monTable.Columns.Add("MonitorDisplayName")|out-null
+$monTable.Columns.Add("Class")|out-null
+$monTable.Columns.Add("HealthState")|out-null
+$monTable.Columns.Add("LastTimeModified")|out-null
+$monTable.Columns.Add("Level")|out-null
+$monTable.Columns.Add("SyncTime")|out-null
+
+
+foreach ($data in $allunhealthy)
+{
+	$row = $monTable.NewRow()
+	$row.'Id'=[guid]$data.MonitorID
+	$row.'Name'=$data.Name
+	$row.'MonitorName'=$data.MonitorName
+	$row.'MonitorDisplayName'=$data.MonitorDisplayName    
+	$row.'HealthState'=$data.HealthState
+	$row.'Class'=($classes|where {$_.id -eq $data.Class}).Displayname
+	$row.'LastTimeModified'=$data.LastTimeModified
+	$row.'Level'=$data.Level
+	$row.'SyncTime'=$SyncTime
+	$monTable.Rows.Add($row)
+}
+
+}
+
+#### fetching alerts for these objects 
+$getalerts=$true
+
+IF($getalerts){
+#### fetching alerts for these objects
+$alertcriteria =new-object Microsoft.EnterpriseManagement.Monitoring.MonitoringAlertCriteria("ResolutionState !=255   and Severity != 0");
+$allalertssdk=@()
+$allalertssdk= $grp.GetMonitoringAlerts($alertcriteria,[Microsoft.EnterpriseManagement.Common.TraversalDepth]::Recursive)
+#|select ID,Name,MonitoringObjectPath,Severity,Priority,Timeraised,Resolutionstate
+
+if($Logging)
+{
+	$message=" $($allalertssdk.count)  alerts  found in $scopedgroup "
+	$api.LogScriptEvent($evtsrcname,9998,4, $message)
+$hash['progresslog']+=$message+"`r`n"
+}
+
+}
+
+#flush data to SQL
+
+$sqlCondb=new-object System.Data.SqlClient.SqlConnection
+$connectionString="Server=$sqlserver;Database=$sqldbname;Integrated Security=SSPI"
+
+$sqlCondb.ConnectionString=$connectionString
+
+
+$ex=$null
+
+Try
+{
+	$sqlCondb.Open()
+}
+Catch [System.Exception]
+{
+
+	$ex=$_.Exception 
+}
+
+if($Ex)
+{
+	$message=" Failed to connect $sqlserver . Error : $ex "
+	$api.LogScriptEvent($evtsrcname,9998,2, $message)
+    $hash['progresslog']+=$message+"`r`n"
+	
+}Elseif($Logging)
+{
+	$message=" Connected to SQL Server: $sqlserver "
+	$api.LogScriptEvent($evtsrcname,9998,4, $message)
+    $hash['progresslog']+=$message+"`r`n"
+
+}
+
+
+
+# upload state data 
+$tablename=($scopedgroup -replace '[^0-9A-Za-z]')+"_Statedata"
+
+
+
+$query=new-object System.Data.SqlClient.SqlCommand
+$query.Connection=$SqlConDB
+$query.CommandText="IF OBJECT_ID('"+$tableName+"', 'U') IS  NULL
+Begin
+CREATE TABLE  $tableName(
+[ID] [nvarchar](512) NOT NULL,
+[Name] [nvarchar](512) NULL,
+[Path] [nvarchar](512)  NULL,
+[Fullname] [nvarchar](MAX)  NULL,
+[Classname] [nvarchar](512)  NULL,
+[FinalClassname] [nvarchar](512)  NULL,
+[HealthState] [nvarchar](50)  NULL,
+[AvailabilityLastModified] [datetime] NULL,
+[synctime] [datetime] NULL
+) ON [PRIMARY]
+END
+Else
+truncate table   $tableName"
+
+$ex=$null
+Try
+{
+$query.Executenonquery()
+}
+Catch [System.Exception]
+{
+$ex = $_.Exception
+
+Write-host $ex
+}
+
+if($Ex)
+{
+	$message=" Failed to run data purge script on $tableName . Error : $ex "
+	$api.LogScriptEvent($evtsrcname,9998,2, $message)
+    $hash['progresslog']+=$message+"`r`n"
+	
+}Elseif($Logging)
+{
+	$message=" Successfully purged data on $tableName "
+	$api.LogScriptEvent($evtsrcname,9998,4, $message)
+    $hash['progresslog']+=$message+"`r`n"
+
+}
+
+
+## Run bulkcopy  to copy data
+$ex=$null
+
+Try
+{
+$bulkCopy =  New-Object Data.SqlClient.SqlBulkCopy($connectionString, [System.Data.SqlClient.SqlBulkCopyOptions]::KeepIdentity)
+$bulkCopy.DestinationTableName = $tableName
+$bulkCopy.BatchSize = 1000
+$bulkCopy.BulkCopyTimeout = 60
+$bulkCopy.WriteToServer($statetable)
+}
+
+Catch [System.Exception]
+{
+$ex = $_.Exception
+	$message=" Bulkcopy to $SqlServer;$SQLDBname ;$tablename  failed with message $ex"
+$hash['progresslog']+=$message+"`r`n"
+
+}
+
+if($Ex)
+{
+	$message="Failed to bulkcopy state table to $tableName . Error : $ex "
+	$api.LogScriptEvent($evtsrcname,9998,2, $message)
+    $hash['progresslog']+=$message+"`r`n"
+	
+}Elseif($Logging)
+{
+	$message=" Successfully  bulkcopy state table to $tableName. "
+	$api.LogScriptEvent($evtsrcname,9998,4, $message)
+    $hash['progresslog']+=$message+"`r`n"
+
+}
+
+
+
+#upload alert Data 
+
+IF($getalerts){
+
+$tablename=($scopedgroup -replace '[^0-9A-Za-z]')+"_Alerts"
+
+$AlertTable = New-Object System.Data.DataTable
+
+	$AlertTable.Columns.Add("ID") |out-null
+	$AlertTable.Columns.Add("Name")|out-null
+	$AlertTable.Columns.Add("MonitoringObjectPath")|out-null
+	$AlertTable.Columns.Add("MonitoringObjectDisplayName")|out-null
+    $AlertTable.Columns.Add("Description")|out-null
+	
+	#Adding object display name as  sometime path  does not give details   like database alerts 
+	
+	$AlertTable.Columns.Add("Fullname")|out-null
+	$AlertTable.Columns.Add("Severity")|out-null
+	$AlertTable.Columns.Add("Priority")|out-null
+	$AlertTable.Columns.Add("Timeraised")|out-null
+	$AlertTable.Columns.Add("Resolutionstate")|out-null
+	$AlertTable.Columns.Add("SyncTime")|out-null
+
+
+foreach ($data in $allalertssdk)
+{
+	$row = $AlertTable.NewRow()
+	$row.'Id'=$data.ID
+	$row.'Name'=$data.Name
+	$row.'MonitoringObjectPath'=$data.MonitoringObjectPath
+    $row.'MonitoringObjectDisplayName'=$data.MonitoringObjectDisplayName
+	$row.'Fullname'=$data.MonitoringObjectFullName
+	$row.'Severity'=$data.Severity
+	$row.'Priority'=$data.Priority
+	$row.'TimeRaised'=$data.TimeRaised
+	$row.'ResolutionState'=$data.ResolutionState
+	$row.'SyncTime'=$synctime
+
+
+
+    If($data.Description.Length -gt 512)
+    {
+        $row.'Description'=$data.Description.Substring(0,510)
+    }Else
+    {
+        $row.'Description'=$data.Description
+    }
+
+	$AlertTable.Rows.Add($row)
+}
+
+}
+
+#Alert  Data 
+
+
+#check and update tbale schema 
+
+
+$query=new-object System.Data.SqlClient.SqlCommand
+$query.Connection=$SqlConDB
+$query.CommandText="IF OBJECT_ID('"+$tableName+"', 'U') IS  NULL
+	Begin
+	    CREATE TABLE  [$tableName](
+		[ID] [nvarchar](512) NOT NULL,
+		[Name] [nvarchar](max)  NULL,
+		[MonitoringObjectPath] [nvarchar](max)  NULL,
+		[MonitoringObjectDisplayName] [nvarchar](512)  NULL,
+		[Description] [nvarchar](512)  NULL,
+		 [Fullname] [nvarchar](max) NULL,
+		[Severity] [nvarchar](50)  NULL,
+		[Priority] [nvarchar](20)  NULL,
+		[TimeRaised] [datetime] NULL,
+		[ResolutionState] [Float]  NULL,
+		[Synctime] [datetime] NULL
+
+		) ON [PRIMARY]
+	END
+Else
+	BEgin
+		 IF NOT EXISTS(SELECT 1 FROM sys.columns 
+          WHERE Name = N'Fullname'
+          AND Object_ID = Object_ID(N'dbo."+$tableName+"'))
+			Begin 
+			Drop TABLE [AdDashboardGroup_Alerts];
+				CREATE TABLE  [$tableName](
+			[ID] [nvarchar](512) NOT NULL,
+			[Name] [nvarchar](max)  NULL,
+			[MonitoringObjectPath] [nvarchar](max)  NULL,
+			[MonitoringObjectDisplayName] [nvarchar](512)  NULL,
+			[Description] [nvarchar](512)  NULL,
+			 [Fullname] [nvarchar](max) NULL,
+			[Severity] [nvarchar](50)  NULL,
+			[Priority] [nvarchar](20)  NULL,
+			[TimeRaised] [datetime] NULL,
+			[ResolutionState] [Float]  NULL,
+			[Synctime] [datetime] NULL
+
+			) ON [PRIMARY]
+
+		 End
+		 Else
+		 truncate table   [$tableName]
+	End"
+
+#Add the Columns
+
+$ex=$null
+Try
+{
+$query.Executenonquery()
+}
+Catch [System.Exception]
+{
+
+$ex = $_.Exception
+Write-host $ex
+
+}
+
+
+## Run bulkcopy  to copy data
+
+Try
+{
+$bulkCopy =  New-Object Data.SqlClient.SqlBulkCopy($connectionString, [System.Data.SqlClient.SqlBulkCopyOptions]::KeepIdentity)
+$bulkCopy.DestinationTableName = $tableName
+$bulkCopy.BatchSize = 1000
+$bulkCopy.BulkCopyTimeout = 60
+$bulkCopy.WriteToServer($alerttable)
+}
+
+Catch [System.Exception]
+{
+$ex = $_.Exception
+$api = new-object -comObject 'MOM.ScriptAPI'
+
+
+	$message=" Bulkcopy to $SqlServer;$SQLDBname ;$tablename  failed with message $ex"
+	If($logging -eq $true)
+				{
+				$api.LogScriptEvent($evtsrcname,9998,2, $message)
+        $hash['progresslog']+=$message+"`r`n"
+		}
+
+	If ($Mode -ne 'Rule')
+		{
+		write-host $message
+		}
+
+
+
+}
+
+
+#upload Moonitor Tree
+
+If($monTable)
+{
+$tablename=($scopedgroup -replace '[^0-9A-Za-z]')+"_Monitordata"
+
+$query=new-object System.Data.SqlClient.SqlCommand
+$query.Connection=$SqlConDB
+
+			$query.CommandText="IF OBJECT_ID('"+$tableName+"', 'U') IS  NULL
+Begin
+CREATE TABLE  $tableName(
+[ID] [nvarchar](512) NOT NULL,
+[Name] [nvarchar](512) NULL,
+[MonitorName] [nvarchar](MAX) NOT  NULL,
+[MonitorDisplayName] [nvarchar](MAX)   NULL,    
+[Class] [nvarchar](MAX)   NULL,            
+[HealthState] [nvarchar](50) NOT  NULL,
+[LastTimeModified] [datetime] NULL,
+[Level] [int] Null,
+[SyncTime]  [datetime] NULL
+) ON [PRIMARY]
+END
+Else
+truncate table   $tableName"
+
+#Add the Columns
+
+$ex=$null
+Try
+{
+$query.Executenonquery()
+}
+Catch [System.Exception]
+{
+$ex = $_.Exception
+Write-host $ex
+}
+
+
+## Run bulkcopy  to copy data
+
+Try
+{
+$bulkCopy =  New-Object Data.SqlClient.SqlBulkCopy($connectionString, [System.Data.SqlClient.SqlBulkCopyOptions]::KeepIdentity)
+$bulkCopy.DestinationTableName = $tableName
+$bulkCopy.BatchSize = 1000
+$bulkCopy.BulkCopyTimeout = 60
+$bulkCopy.WriteToServer($monTable)
+}
+Catch [System.Exception]
+{
+$ex = $_.Exception
+
+
+
+	$message=" Bulkcopy to $SqlServer;$SQLDBname ;$tablename  failed with message $ex"
+	If($logging -eq $true)
+				{
+				$api.LogScriptEvent($evtsrcname,9998,2, $message)
+                $hash['progresslog']+=$message+"`r`n"
+		}
+
+	If ($Mode -ne 'Rule')
+		{
+		write-host $message
+		}
+}
+
+
+
+}
+
+$hash.Add($group,$StateTable)
+
+
+$SqlConDB.Close()
+$SqlConDB.Dispose()
+$bulkCopy.Close()
+
+}Else{
+
+Write-error "Cant find any members in $($grp.Displayname)"
+
+	$message=" Cant find any members in $($grp.Displayname) "
+	$api.LogScriptEvent($evtsrcname,9998,2, $message)
+$hash['progresslog']+=$message+"`r`n"
+	
+}
+
+if($Logging)
+{
+	$message=" Finishing runspace $rsid"
+	$api.LogScriptEvent($evtsrcname,9998,4, $message)
+    $hash['progresslog']+=$message+"`r`n"
+}
+
+
+}
+
+#region trigger runspaces 
+
+Write-Output "After Runspace creation  $([System.gc]::gettotalmemory('forcefullcollection') /1MB) MB"
+
+$i=1 
+
+$Starttimer=get-date
+
+[array]$Groups=$GroupList.split(';')
+
+	$groups|foreach{
+
+		$grp=$null
+		$grp=$_
+		$Job = [powershell]::Create().AddScript($ScriptBlock).AddArgument($hash).AddArgument($grp).Addargument($i).AddArgument($SQLserver).AddArgument($SQLDBName).AddArgument($logging)
+		$Jobs += New-Object PSObject -Property @{
+		RunNum = $i
+		Pipe = $Job
+		Result = $Job.BeginInvoke()
+		Group=$grp
+
+			}
+		
+		$i++
+	}
+
+write-output  "$(get-date)  , started $i Runspaces "
+Write-Output "After dispatching runspaces $([System.gc]::gettotalmemory('forcefullcollection') /1MB) MB"
+$jobsClone=$jobs.clone()
+Write-Output "Waiting.."
+
+
+$s=1
+Do {
+
+Write-Output "  $(@($jobs.result.iscompleted|where{$_  -match 'False'}).count)  jobs remaining"
+
+foreach ($jobobj in $JobsClone)
+{
+
+	if ($Jobobj.result.IsCompleted -eq $true)
+	{
+		$jobobj.Pipe.Endinvoke($jobobj.Result)
+		if($Logging)
+         {	
+		    $logfile="c:\tmp\DB_sync_Rule_$($Jobobj.group).log"
+		    #dump job streams 
+		    $log=""
+		    $log+=" -----------------------------------`n`r"
+		    $log+=" `n`r"
+		    $log+=" `n`r"
+		    $log+="Error Stream: `n`r"
+		    $log+=" "
+		    $jobobj.pipe.Streams.Error|?{ $log+="$($_) `n`r " }
+		    $log+=" `n`r"
+		    $log+="Warning Stream: `n`r"
+		    $log+=" "
+		    $jobobj.pipe.Streams.Warning|?{ $log+="$($_) `n`r " }
+		    $log+=" `n`r" 
+		    $log+="Information Stream: `n`r"
+		    $log+=" "
+		    $jobobj.pipe.Streams.Information|?{ $log+="$($_) `n`r " }
+		    $log+=" ------STATE EXPORT--------`n`r"
+		    $log+=" `n`r"
+	
+            If(test-path 'C:\tmp')
+	                                                {
+		$log|out-file -FilePath $logfile -Force 
+		$hash.item($Jobobj.group)|out-file -FilePath $logfile -Append
+	}
+            Else
+	                                                            {
+		md c:\tmp
+		$log|out-file -FilePath $logfile -Force
+		$hash.item($Jobobj.group)|out-file -FilePath $logfile -Append
+	}
+               }
+
+		$jobobj.pipe.dispose()
+		$jobs.Remove($jobobj)
+
+	}
+}
+
+IF($([System.gc]::gettotalmemory('forcefullcollection') /1MB) -gt 200)
+{
+	[gc]::Collect()
+}
+
+	IF($s%10 -eq 0) 
+{
+	Write-Output "Job $s - Mem: $([System.gc]::gettotalmemory('forcefullcollection') /1MB) MB"
+}  
+$s++
+	
+Start-Sleep -Seconds 15
+
+
+} While ( @($jobs.result.iscompleted|where{$_  -match 'False'}).count -gt 0)
+Write-output "All jobs completed!"
+
+$end=get-date
+$message="All jobs completed in $(($end-$start).minutes) minutes and $(($end-$start).Seconds) seconds "
+$api.LogScriptEvent("DashboardAllinOneSync",9999,4, $message)
+$hash['progresslog']+=$message+"`r`n"
+
+
+Write-Output $hash['progresslog']
+
+
+$jobs|foreach{$_.Pipe.Dispose()}
+
+
+$runspacepool.Close()
+
+[gc]::Collect()
+
+
+</ScriptBody>
+                <Parameters>
+                  <Parameter>
+                    <Name>SQLServer</Name>
+                    <Value>$Config/SQLServer$</Value>
+                  </Parameter>
+                  <Parameter>
+                    <Name>SQLDBName</Name>
+                    <Value>$Config/SQLDBName$</Value>
+                  </Parameter>
+                  <Parameter>
+                    <Name>GroupList</Name>
+                    <Value>$Config/GroupList$</Value>
+                  </Parameter>
+                  <Parameter>
+                    <Name>Logging</Name>
+                    <Value>$Config/Logging$</Value>
+                  </Parameter>
+                  <Parameter>
+                    <Name>Mode</Name>
+                    <Value>$Config/Mode$</Value>
+                  </Parameter>
+                  <Parameter>
+                    <Name>GetAlerts</Name>
+                    <Value>$Config/GetAlerts$</Value>
+                  </Parameter>
+                  <Parameter>
+                    <Name>GetMonitorTree</Name>
+                    <Value>$Config/GetMonitorTree$</Value>
+                  </Parameter>
+                </Parameters>
+                <TimeoutSeconds>$Config/TimeoutSeconds$</TimeoutSeconds>
+              </WriteAction>
+            </MemberModules>
+            <Composition>
+              <Node ID="MSDashboards.CustomWA" />
+            </Composition>
+          </Composite>
+        </ModuleImplementation>
+        <OutputType>System!System.BaseData</OutputType>
+        <InputType>System!System.BaseData</InputType>
+      </WriteActionModuleType>
+      <WriteActionModuleType ID="MSDashboards.Custom.WAType" Accessibility="Public" Batching="false">
+        <Configuration>
+          <xsd:element minOccurs="1" name="ScriptName" type="xsd:string" xmlns:xsd="http://www.w3.org/2001/XMLSchema" />
+          <xsd:element minOccurs="1" name="ScriptBody" type="xsd:string" xmlns:xsd="http://www.w3.org/2001/XMLSchema" />
+          <xsd:element minOccurs="0" name="SQLServer" type="xsd:string" xmlns:xsd="http://www.w3.org/2001/XMLSchema" />
+          <xsd:element minOccurs="0" name="SQLDBName" type="xsd:string" xmlns:xsd="http://www.w3.org/2001/XMLSchema" />
+          <xsd:element minOccurs="0" name="TableName" type="xsd:string" xmlns:xsd="http://www.w3.org/2001/XMLSchema" />
+          <xsd:element minOccurs="0" name="Logging" type="xsd:boolean" xmlns:xsd="http://www.w3.org/2001/XMLSchema" />
+          <xsd:element minOccurs="0" name="ScopedGroup" type="xsd:string" xmlns:xsd="http://www.w3.org/2001/XMLSchema" />
+          <xsd:element minOccurs="0" name="SyncChildObjects" type="xsd:boolean" xmlns:xsd="http://www.w3.org/2001/XMLSchema" />
+          <xsd:element minOccurs="0" name="subtotal" type="xsd:boolean" xmlns:xsd="http://www.w3.org/2001/XMLSchema" />
+          <xsd:element minOccurs="1" name="TimeoutSeconds" type="xsd:integer" xmlns:xsd="http://www.w3.org/2001/XMLSchema" />
+        </Configuration>
+        <OverrideableParameters>
+          <OverrideableParameter ID="SQLServer" Selector="$Config/SQLServer$" ParameterType="string" />
+          <OverrideableParameter ID="SQLDBName" Selector="$Config/SQLDBName$" ParameterType="string" />
+          <OverrideableParameter ID="TableName" Selector="$Config/TableName$" ParameterType="string" />
+          <OverrideableParameter ID="Logging" Selector="$Config/Logging$" ParameterType="bool" />
+          <OverrideableParameter ID="ScopedGroup" Selector="$Config/ScopedGroup$" ParameterType="string" />
+          <OverrideableParameter ID="SyncChildObjects" Selector="$Config/SyncChildObjects$" ParameterType="bool" />
+          <OverrideableParameter ID="subtotal" Selector="$Config/subtotal$" ParameterType="bool" />
+          <OverrideableParameter ID="TimeoutSeconds" Selector="$Config/TimeoutSeconds$" ParameterType="decimal" />
+        </OverrideableParameters>
+        <ModuleImplementation Isolation="Any">
+          <Composite>
+            <MemberModules>
+              <WriteAction ID="MSDashboards.CustomWA" TypeID="Windows!Microsoft.Windows.PowerShellWriteAction">
+                <ScriptName>$Config/ScriptName$</ScriptName>
+                <ScriptBody>
+                  $Config/ScriptBody$
+                </ScriptBody>
+                <Parameters>
+                  <Parameter>
+                    <Name>SQLServer</Name>
+                    <Value>$Config/SQLServer$</Value>
+                  </Parameter>
+                  <Parameter>
+                    <Name>SQLDBName</Name>
+                    <Value>$Config/SQLDBName$</Value>
+                  </Parameter>
+                  <Parameter>
+                    <Name>TableName</Name>
+                    <Value>$Config/TableName$</Value>
+                  </Parameter>
+                  <Parameter>
+                    <Name>Logging</Name>
+                    <Value>$Config/Logging$</Value>
+                  </Parameter>
+                  <Parameter>
+                    <Name>ScopedGroup</Name>
+                    <Value>$Config/ScopedGroup$</Value>
+                  </Parameter>
+                  <Parameter>
+                    <Name>SyncChildObjects</Name>
+                    <Value>$Config/SyncChildObjects$</Value>
+                  </Parameter>
+                  <Parameter>
+                    <Name>subtotal</Name>
+                    <Value>$Config/subtotal$</Value>
+                  </Parameter>
+                </Parameters>
+                <TimeoutSeconds>$Config/TimeoutSeconds$</TimeoutSeconds>
+              </WriteAction>
+            </MemberModules>
+            <Composition>
+              <Node ID="MSDashboards.CustomWA" />
+            </Composition>
+          </Composite>
+        </ModuleImplementation>
+        <OutputType>System!System.BaseData</OutputType>
+        <InputType>System!System.BaseData</InputType>
+      </WriteActionModuleType>
+    </ModuleTypes>
+  </TypeDefinitions>
+  <Monitoring>
+    <Rules>
+      <Rule ID="MSDashboards.Custom.AllinOne.Sync" Enabled="false" Target="SCLibrary!Microsoft.SystemCenter.AllManagementServersPool" ConfirmDelivery="true" Remotable="true" Priority="Normal" DiscardLevel="100">
+        <Category>Custom</Category>
+        <DataSources>
+          <DataSource ID="SchedDS" TypeID="System!System.SimpleScheduler">
+            <IntervalSeconds>300</IntervalSeconds>
+            <SyncTime>00:02</SyncTime>
+          </DataSource>
+        </DataSources>
+        <WriteActions>
+          <WriteAction ID="PoshWA" TypeID="MSDashboards.Custom.SDK.Generic.WAType.v3">
+            <ScriptName>AllGroupsSync.ps1</ScriptName>
+            <SQLServer />
+            <SQLDBName>EnterpriseDashboards</SQLDBName>
+            <GroupList>Group1;Group2;Group3</GroupList>
+            <Mode>Rule</Mode>
+            <GetAlerts>true</GetAlerts>
+            <GetMonitorTree>false</GetMonitorTree>
+            <Logging>false</Logging>
+            <TimeoutSeconds>250</TimeoutSeconds>
+          </WriteAction>
+        </WriteActions>
+      </Rule>
+    </Rules>
+    <Tasks>
+      <Task ID="MSDashboards.Custom.Task.HealthState.Trouleshooter" Accessibility="Public" Enabled="true" Target="SCLibrary!Microsoft.SystemCenter.ManagementServer" Timeout="300" Remotable="true">
+        <Category>Custom</Category>
+        <WriteAction ID="PoshWA" TypeID="MSDashboards.Custom.SDK.Generic.WAType.v3">
+          <ScriptName>AllGroupsSync.ps1</ScriptName>
+          <SQLServer />
+          <SQLDBName>EnterpriseDashboards</SQLDBName>
+          <GroupList>Ad Dashboard Group</GroupList>
+          <Mode>Rule</Mode>
+          <GetAlerts>true</GetAlerts>
+          <GetMonitorTree>true</GetMonitorTree>
+          <Logging>true</Logging>
+          <TimeoutSeconds>550</TimeoutSeconds>
+        </WriteAction>
+      </Task>
+    </Tasks>
+    <Overrides></Overrides>
+  </Monitoring>
+  <Presentation>
+    <Views>
+      <View ID="MSDashboard.Troubleshooting.View" Accessibility="Public" Enabled="true" Target="SCLibrary!Microsoft.SystemCenter.ManagementServer" TypeID="SCLibrary!Microsoft.SystemCenter.StateViewType" Visible="true">
+        <Category>Operations</Category>
+        <Criteria>
+          <InMaintenanceMode>false</InMaintenanceMode>
+        </Criteria>
+        <Presentation>
+          <ColumnInfo Index="0" SortIndex="0" Width="100" Grouped="false" Sorted="true" IsSortable="true" Visible="true" SortOrder="Descending">
+            <Name>State</Name>
+            <Id>Microsoft.SystemCenter.ManagementServer-*-9189a49e-b2de-cab0-2e4f-4925b68e335d-*-Health</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="1" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="true" Visible="true" SortOrder="Ascending">
+            <Name>Maintenance Mode</Name>
+            <Id>InMaintenanceMode</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="2" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="true" Visible="true" SortOrder="Ascending">
+            <Name>Name</Name>
+            <Id>Name</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="3" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="true" Visible="true" SortOrder="Ascending">
+            <Name>Path</Name>
+            <Id>Path</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="4" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="true" Visible="false" SortOrder="Ascending">
+            <Name>Display Name</Name>
+            <Id>System.Entity/DisplayName</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="5" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="true" Visible="false" SortOrder="Ascending">
+            <Name>Authentication Name</Name>
+            <Id>Microsoft.SystemCenter.HealthService/AuthenticationName</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="6" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="true" Visible="false" SortOrder="Ascending">
+            <Name>Maximum Queue Size</Name>
+            <Id>Microsoft.SystemCenter.HealthService/MaximumQueueSize</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="7" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="true" Visible="false" SortOrder="Ascending">
+            <Name>Maximum Size Of All Transferred Files</Name>
+            <Id>Microsoft.SystemCenter.HealthService/MaximumSizeOfAllTransferredFiles</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="8" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="false" Visible="false" SortOrder="Ascending">
+            <Name>Request Compression</Name>
+            <Id>Microsoft.SystemCenter.HealthService/RequestCompression</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="9" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="false" Visible="false" SortOrder="Ascending">
+            <Name>Create Listener</Name>
+            <Id>Microsoft.SystemCenter.HealthService/CreateListener</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="10" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="true" Visible="false" SortOrder="Ascending">
+            <Name>Port</Name>
+            <Id>Microsoft.SystemCenter.HealthService/Port</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="11" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="false" Visible="false" SortOrder="Ascending">
+            <Name>Is Root Health Service Emulator</Name>
+            <Id>Microsoft.SystemCenter.HealthService/IsRHS</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="12" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="false" Visible="false" SortOrder="Ascending">
+            <Name>Is Management Server</Name>
+            <Id>Microsoft.SystemCenter.HealthService/IsManagementServer</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="13" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="false" Visible="false" SortOrder="Ascending">
+            <Name>Is Agent</Name>
+            <Id>Microsoft.SystemCenter.HealthService/IsAgent</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="14" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="false" Visible="false" SortOrder="Ascending">
+            <Name>Is Gateway</Name>
+            <Id>Microsoft.SystemCenter.HealthService/IsGateway</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="15" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="false" Visible="false" SortOrder="Ascending">
+            <Name>Is Manually Installed</Name>
+            <Id>Microsoft.SystemCenter.HealthService/IsManuallyInstalled</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="16" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="true" Visible="false" SortOrder="Ascending">
+            <Name>Installed By</Name>
+            <Id>Microsoft.SystemCenter.HealthService/InstalledBy</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="17" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="false" Visible="false" SortOrder="Ascending">
+            <Name>Install Time</Name>
+            <Id>Microsoft.SystemCenter.HealthService/InstallTime</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="18" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="true" Visible="false" SortOrder="Ascending">
+            <Name>Version</Name>
+            <Id>Microsoft.SystemCenter.HealthService/Version</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="19" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="true" Visible="false" SortOrder="Ascending">
+            <Name>Action Account Identity</Name>
+            <Id>Microsoft.SystemCenter.HealthService/ActionAccountIdentity</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="20" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="false" Visible="false" SortOrder="Ascending">
+            <Name>Send Heartbeats to Management Servers</Name>
+            <Id>Microsoft.SystemCenter.HealthService/HeartbeatEnabled</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="21" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="true" Visible="false" SortOrder="Ascending">
+            <Name>Heartbeat Interval (seconds)</Name>
+            <Id>Microsoft.SystemCenter.HealthService/HeartbeatInterval</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="22" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="false" Visible="false" SortOrder="Ascending">
+            <Name>Managed Through Active Directory</Name>
+            <Id>Microsoft.SystemCenter.HealthService/ActiveDirectoryManaged</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="23" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="false" Visible="false" SortOrder="Ascending">
+            <Name>Proxying Enabled</Name>
+            <Id>Microsoft.SystemCenter.HealthService/ProxyingEnabled</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="24" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="true" Visible="false" SortOrder="Ascending">
+            <Name>Patch List</Name>
+            <Id>Microsoft.SystemCenter.HealthService/PatchList</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="25" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="true" Visible="false" SortOrder="Ascending">
+            <Name>Agent communication protocol</Name>
+            <Id>Microsoft.SystemCenter.HealthService/Protocol</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="26" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="false" Visible="false" SortOrder="Ascending">
+            <Name>Agent initiates connection to parent agents</Name>
+            <Id>Microsoft.SystemCenter.HealthService/InitiatesConnectionToParent</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="27" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="true" Visible="false" SortOrder="Ascending">
+            <Name>Authentication service URI</Name>
+            <Id>Microsoft.SystemCenter.HealthService/ThirdPartyAuthenticationUri</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="28" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="true" Visible="false" SortOrder="Ascending">
+            <Name>Management Server SCP</Name>
+            <Id>Microsoft.SystemCenter.ManagementServer/ManagementServerSCP</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="29" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="false" Visible="false" SortOrder="Ascending">
+            <Name>Auto Approve Manually Installed Agents</Name>
+            <Id>Microsoft.SystemCenter.ManagementServer/AutoApproveManuallyInstalledAgents</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="30" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="true" Visible="false" SortOrder="Ascending">
+            <Name>Number of Missing Heartbeats Allowed</Name>
+            <Id>Microsoft.SystemCenter.ManagementServer/NumberOfMissingHeartBeatsToMarkMachineDown</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="31" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="true" Visible="false" SortOrder="Ascending">
+            <Name>Proxy Address</Name>
+            <Id>Microsoft.SystemCenter.ManagementServer/ProxyAddress</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="32" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="true" Visible="false" SortOrder="Ascending">
+            <Name>Proxy Port</Name>
+            <Id>Microsoft.SystemCenter.ManagementServer/ProxyPort</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="33" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="false" Visible="false" SortOrder="Ascending">
+            <Name>Reject Manually Installed Agents</Name>
+            <Id>Microsoft.SystemCenter.ManagementServer/RejectManuallyInstalledAgents</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="34" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="false" Visible="false" SortOrder="Ascending">
+            <Name>Use Proxy Server</Name>
+            <Id>Microsoft.SystemCenter.ManagementServer/UseProxyServer</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="35" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="true" Visible="false" SortOrder="Ascending">
+            <Name>User Action Manager</Name>
+            <Id>Microsoft.SystemCenter.UserActionManager</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="36" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="true" Visible="false" SortOrder="Ascending">
+            <Name>Agent Manager</Name>
+            <Id>Microsoft.SystemCenter.AgentManager</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="37" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="true" Visible="false" SortOrder="Ascending">
+            <Name>Crash Listener</Name>
+            <Id>Microsoft.SystemCenter.CM.AEM.CrashListener</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="38" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="true" Visible="false" SortOrder="Ascending">
+            <Name>CEIP Data Listener Instance</Name>
+            <Id>Microsoft.SystemCenter.CM.SQM.SQMListener</Id>
+          </ColumnInfo>
+        </Presentation>
+        <Target />
+      </View>
+    </Views>
+    <Folders>
+      <Folder ID="MSDashboard.Troubleshooting.Folder" Accessibility="Public" ParentFolder="SCLibrary!Microsoft.SystemCenter.Monitoring.ViewFolder.Root" />
+    </Folders>
+    <FolderItems>
+      <FolderItem ElementID="MSDashboard.Troubleshooting.View" ID="ie8b94e5d06094c74a476db60d4b41040" Folder="MSDashboard.Troubleshooting.Folder" />
+    </FolderItems>
+  </Presentation>
+  <LanguagePacks>
+    <LanguagePack ID="ENU" IsDefault="true">
+      <DisplayStrings>
+        <DisplayString ElementID="MSDashboards.Custom.Task.HealthState.Trouleshooter">
+          <Name>Dashboard Sync Troubleshooter Task</Name>
+          <Description>Enable  with Override and specify the SCOM Group . If no Group specified script will exit.</Description>
+        </DisplayString>
+        <DisplayString ElementID="MSDashboard.Troubleshooting.Folder">
+          <Name>Custom Dashboard Sync Troubleshooter</Name>
+        </DisplayString>
+        <DisplayString ElementID="MSDashboard.Troubleshooting.View">
+          <Name>Dashboard Target Management Servers</Name>
+          <Description>Dashboard rules runs on ll Management Servers Resource Pool by default. Use tasks from task pane to simulate Haealth State sync and Performance sync rules.</Description>
+        </DisplayString>
+        <DisplayString ElementID="EnterpriseDashboard">
+          <Name>Enterprise Dashboards Sync Rules MP</Name>
+          <Description>Mobility Dashboards are a solution to represent monitored data independent of the SDK service using SQL Mobility Reports\Dashboards. Requirement is to have SQL 2016 Enterprise or developer version.
+			</Description>
+        </DisplayString>
+        <DisplayString ElementID="MSDashboards.Custom.AllinOne.Sync">
+          <Name>MSDashboards Unified Sync Engine for Multiple Groups </Name>
+        </DisplayString>
+        <DisplayString ElementID="MSDashboards.Custom.AllinOne.Sync" SubElementID="SchedDS">
+          <Name>SchedDS</Name>
+        </DisplayString>
+        <DisplayString ElementID="MSDashboards.Custom.AllinOne.Sync" SubElementID="PoshWA">
+          <Name>PoshWA</Name>
+        </DisplayString>
+      </DisplayStrings>
+    </LanguagePack>
+  </LanguagePacks>
+</ManagementPackFragment>
