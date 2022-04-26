@@ -1,0 +1,966 @@
+﻿<?xml version="1.0" encoding="utf-8"?><ManagementPack ContentReadable="true" SchemaVersion="2.0" OriginalSchemaVersion="1.1" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+  <Manifest>
+    <Identity>
+      <ID>EnterpriseDashboard.Exchange.Queue.Monitoring</ID>
+      <Version>1.0.0.7</Version>
+    </Identity>
+    <Name>EnterpriseDashboard Exchange 2010 Queue Monitoring</Name>
+    <References>
+      <Reference Alias="Exchange">
+        <ID>Microsoft.Exchange.15</ID>
+        <Version>15.0.668.20</Version>
+        <PublicKeyToken>31bf3856ad364e35</PublicKeyToken>
+      </Reference>
+      <Reference Alias="SCDW">
+        <ID>Microsoft.SystemCenter.DataWarehouse.Library</ID>
+        <Version>7.2.11719.0</Version>
+        <PublicKeyToken>31bf3856ad364e35</PublicKeyToken>
+      </Reference>
+      <Reference Alias="Windows">
+        <ID>Microsoft.Windows.Library</ID>
+        <Version>7.5.8501.0</Version>
+        <PublicKeyToken>31bf3856ad364e35</PublicKeyToken>
+      </Reference>
+      <Reference Alias="Performance">
+        <ID>System.Performance.Library</ID>
+        <Version>7.0.8437.0</Version>
+        <PublicKeyToken>31bf3856ad364e35</PublicKeyToken>
+      </Reference>
+      <Reference Alias="System">
+        <ID>System.Library</ID>
+        <Version>7.5.8501.0</Version>
+        <PublicKeyToken>31bf3856ad364e35</PublicKeyToken>
+      </Reference>
+      <Reference Alias="SystemCenter">
+        <ID>Microsoft.SystemCenter.Library</ID>
+        <Version>7.0.8437.0</Version>
+        <PublicKeyToken>31bf3856ad364e35</PublicKeyToken>
+      </Reference>
+      <Reference Alias="Health">
+        <ID>System.Health.Library</ID>
+        <Version>7.0.8437.0</Version>
+        <PublicKeyToken>31bf3856ad364e35</PublicKeyToken>
+      </Reference>
+    </References>
+  </Manifest>
+  <TypeDefinitions>
+    <ModuleTypes>
+      <DataSourceModuleType ID="Exc.Custom.Datasource.MessageTracking" Accessibility="Internal" Batching="false">
+        <Configuration>
+          <xsd:element minOccurs="1" name="ScriptName" type="xsd:string" xmlns:xsd="http://www.w3.org/2001/XMLSchema" />
+          <xsd:element minOccurs="1" name="ScriptBody" type="xsd:string" xmlns:xsd="http://www.w3.org/2001/XMLSchema" />
+          <xsd:element minOccurs="1" name="IntervalSeconds" type="xsd:integer" xmlns:xsd="http://www.w3.org/2001/XMLSchema" />
+          <xsd:element minOccurs="0" name="SyncTime" type="xsd:string" xmlns:xsd="http://www.w3.org/2001/XMLSchema" />
+          <xsd:element minOccurs="1" name="ServerName" type="xsd:string" xmlns:xsd="http://www.w3.org/2001/XMLSchema" />
+          <xsd:element minOccurs="1" name="Debug" type="xsd:string" xmlns:xsd="http://www.w3.org/2001/XMLSchema" />
+        </Configuration>
+        <OverrideableParameters>
+          <OverrideableParameter ID="IntervalSeconds" Selector="$Config/IntervalSeconds$" ParameterType="int" />
+          <OverrideableParameter ID="SyncTime" Selector="$Config/SyncTime$" ParameterType="string" />
+          <OverrideableParameter ID="Debug" Selector="$Config/Debug$" ParameterType="string" />
+        </OverrideableParameters>
+        <ModuleImplementation Isolation="Any">
+          <Composite>
+            <MemberModules>
+              <DataSource ID="Scheduler" TypeID="System!System.SimpleScheduler">
+                <IntervalSeconds>$Config/IntervalSeconds$</IntervalSeconds>
+                <SyncTime>$Config/SyncTime$</SyncTime>
+              </DataSource>
+              <ProbeAction ID="Probe" TypeID="Exc.Custom.MessageTracking.Probe">
+                <ScriptName>$Config/ScriptName$</ScriptName>
+                <ScriptBody>
+                  $Config/ScriptBody$
+                </ScriptBody>
+                <ServerName>$Config/ServerName$</ServerName>
+                <Debug>$Config/Debug$</Debug>
+              </ProbeAction>
+            </MemberModules>
+            <Composition>
+              <Node ID="Probe">
+                <Node ID="Scheduler" />
+              </Node>
+            </Composition>
+          </Composite>
+        </ModuleImplementation>
+        <OutputType>System!System.PropertyBagData</OutputType>
+      </DataSourceModuleType>
+      <ProbeActionModuleType ID="Exc.Custom.MessageTracking.Probe" Accessibility="Internal" Batching="false" PassThrough="false">
+        <Configuration>
+          <xsd:element minOccurs="1" name="ScriptName" type="xsd:string" xmlns:xsd="http://www.w3.org/2001/XMLSchema" />
+          <xsd:element minOccurs="1" name="ScriptBody" type="xsd:string" xmlns:xsd="http://www.w3.org/2001/XMLSchema" />
+          <xsd:element minOccurs="1" name="ServerName" type="xsd:string" xmlns:xsd="http://www.w3.org/2001/XMLSchema" />
+          <xsd:element minOccurs="1" name="Debug" type="xsd:string" xmlns:xsd="http://www.w3.org/2001/XMLSchema" />
+        </Configuration>
+        <ModuleImplementation Isolation="Any">
+          <Composite>
+            <MemberModules>
+              <ProbeAction ID="Script" TypeID="Windows!Microsoft.Windows.PowerShellPropertyBagTriggerOnlyProbe">
+                <ScriptName>$Config/ScriptName$</ScriptName>
+                <ScriptBody>
+                  $Config/ScriptBody$
+                </ScriptBody>
+                <Parameters>
+                  <Parameter>
+                    <Name>serverName</Name>
+                    <Value>$Config/ServerName$</Value>
+                  </Parameter>
+                  <Parameter>
+                    <Name>Debug</Name>
+                    <Value>$Config/Debug$</Value>
+                  </Parameter>
+                </Parameters>
+                <TimeoutSeconds>360</TimeoutSeconds>
+              </ProbeAction>
+            </MemberModules>
+            <Composition>
+              <Node ID="Script" />
+            </Composition>
+          </Composite>
+        </ModuleImplementation>
+        <OutputType>System!System.PropertyBagData</OutputType>
+        <TriggerOnly>true</TriggerOnly>
+      </ProbeActionModuleType>
+    </ModuleTypes>
+  </TypeDefinitions>
+  <Monitoring>
+    <Rules>
+      <Rule ID="Custom.Exchange.RetryRemoteDeliveryQueueLength.Rule" Enabled="true" Target="Exchange!Microsoft.Exchange.15.Server" ConfirmDelivery="false" Remotable="true" Priority="Normal" DiscardLevel="100">
+        <Category>PerformanceCollection</Category>
+        <DataSources>
+          <DataSource ID="DS" TypeID="Performance!System.Performance.OptimizedDataProvider">
+            <ComputerName>$Target/Host/Property[Type="Windows!Microsoft.Windows.Computer"]/NetworkName$</ComputerName>
+            <CounterName>Retry Remote Delivery Queue Length</CounterName>
+            <ObjectName>MSExchangeTransport Queues</ObjectName>
+            <InstanceName>_total</InstanceName>
+            <AllInstances>false</AllInstances>
+            <Frequency>600</Frequency>
+            <Tolerance>1</Tolerance>
+            <ToleranceType>Absolute</ToleranceType>
+            <MaximumSampleSeparation>5</MaximumSampleSeparation>
+          </DataSource>
+        </DataSources>
+        <WriteActions>
+          <WriteAction ID="WriteToDB" TypeID="SystemCenter!Microsoft.SystemCenter.CollectPerformanceData" />
+          <WriteAction ID="WriteToDW" TypeID="SCDW!Microsoft.SystemCenter.DataWarehouse.PublishPerformanceData" />
+        </WriteActions>
+      </Rule>
+      <Rule ID="Custom.Exchange.ActiveRemoteDeliveryQueueLength.Rule" Enabled="true" Target="Exchange!Microsoft.Exchange.15.Server" ConfirmDelivery="false" Remotable="true" Priority="Normal" DiscardLevel="100">
+        <Category>PerformanceCollection</Category>
+        <DataSources>
+          <DataSource ID="DS" TypeID="Performance!System.Performance.OptimizedDataProvider">
+            <ComputerName>$Target/Host/Property[Type="Windows!Microsoft.Windows.Computer"]/NetworkName$</ComputerName>
+            <CounterName>Active Remote Delivery Queue Length</CounterName>
+            <ObjectName>MSExchangeTransport Queues</ObjectName>
+            <InstanceName>_total</InstanceName>
+            <AllInstances>false</AllInstances>
+            <Frequency>600</Frequency>
+            <Tolerance>1</Tolerance>
+            <ToleranceType>Absolute</ToleranceType>
+            <MaximumSampleSeparation>5</MaximumSampleSeparation>
+          </DataSource>
+        </DataSources>
+        <WriteActions>
+          <WriteAction ID="WriteToDB" TypeID="SystemCenter!Microsoft.SystemCenter.CollectPerformanceData" />
+          <WriteAction ID="WriteToDW" TypeID="SCDW!Microsoft.SystemCenter.DataWarehouse.PublishPerformanceData" />
+        </WriteActions>
+      </Rule>
+      <Rule ID="Custom.Exchange.ActiveMailboxDeliveryQueueLength.Rule" Enabled="true" Target="Exchange!Microsoft.Exchange.15.Server" ConfirmDelivery="false" Remotable="true" Priority="Normal" DiscardLevel="100">
+        <Category>PerformanceCollection</Category>
+        <DataSources>
+          <DataSource ID="DS" TypeID="Performance!System.Performance.OptimizedDataProvider">
+            <ComputerName>$Target/Host/Property[Type="Windows!Microsoft.Windows.Computer"]/NetworkName$</ComputerName>
+            <CounterName>Active Mailbox Delivery Queue Length</CounterName>
+            <ObjectName>MSExchangeTransport Queues</ObjectName>
+            <InstanceName>_total</InstanceName>
+            <AllInstances>false</AllInstances>
+            <Frequency>600</Frequency>
+            <Tolerance>1</Tolerance>
+            <ToleranceType>Absolute</ToleranceType>
+            <MaximumSampleSeparation>5</MaximumSampleSeparation>
+          </DataSource>
+        </DataSources>
+        <WriteActions>
+          <WriteAction ID="WriteToDB" TypeID="SystemCenter!Microsoft.SystemCenter.CollectPerformanceData" />
+          <WriteAction ID="WriteToDW" TypeID="SCDW!Microsoft.SystemCenter.DataWarehouse.PublishPerformanceData" />
+        </WriteActions>
+      </Rule>
+      <Rule ID="Custom.Exchange.RetryMailboxDeliveryQueueLength.Rule" Enabled="true" Target="Exchange!Microsoft.Exchange.15.Server" ConfirmDelivery="false" Remotable="true" Priority="Normal" DiscardLevel="100">
+        <Category>PerformanceCollection</Category>
+        <DataSources>
+          <DataSource ID="DS" TypeID="Performance!System.Performance.OptimizedDataProvider">
+            <ComputerName>$Target/Host/Property[Type="Windows!Microsoft.Windows.Computer"]/NetworkName$</ComputerName>
+            <CounterName>Retry Mailbox Delivery Queue Length</CounterName>
+            <ObjectName>MSExchangeTransport Queues</ObjectName>
+            <InstanceName>_total</InstanceName>
+            <AllInstances>false</AllInstances>
+            <Frequency>600</Frequency>
+            <Tolerance>1</Tolerance>
+            <ToleranceType>Absolute</ToleranceType>
+            <MaximumSampleSeparation>5</MaximumSampleSeparation>
+          </DataSource>
+        </DataSources>
+        <WriteActions>
+          <WriteAction ID="WriteToDB" TypeID="SystemCenter!Microsoft.SystemCenter.CollectPerformanceData" />
+          <WriteAction ID="WriteToDW" TypeID="SCDW!Microsoft.SystemCenter.DataWarehouse.PublishPerformanceData" />
+        </WriteActions>
+      </Rule>
+      <Rule ID="Custom.Exchange.AggregateDeliveryQueueLength.AllQueues.Rule" Enabled="true" Target="Exchange!Microsoft.Exchange.15.Server" ConfirmDelivery="false" Remotable="true" Priority="Normal" DiscardLevel="100">
+        <Category>PerformanceCollection</Category>
+        <DataSources>
+          <DataSource ID="DS" TypeID="Performance!System.Performance.OptimizedDataProvider">
+            <ComputerName>$Target/Host/Property[Type="Windows!Microsoft.Windows.Computer"]/NetworkName$</ComputerName>
+            <CounterName>Aggregate Delivery Queue Length (All Queues)</CounterName>
+            <ObjectName>MSExchangeTransport Queues</ObjectName>
+            <InstanceName>_total</InstanceName>
+            <AllInstances>false</AllInstances>
+            <Frequency>600</Frequency>
+            <Tolerance>1</Tolerance>
+            <ToleranceType>Absolute</ToleranceType>
+            <MaximumSampleSeparation>5</MaximumSampleSeparation>
+          </DataSource>
+        </DataSources>
+        <WriteActions>
+          <WriteAction ID="WriteToDB" TypeID="SystemCenter!Microsoft.SystemCenter.CollectPerformanceData" />
+          <WriteAction ID="WriteToDW" TypeID="SCDW!Microsoft.SystemCenter.DataWarehouse.PublishPerformanceData" />
+        </WriteActions>
+      </Rule>
+      <Rule ID="Custom.Exchange.PoisonQueueLength.AllQueues.Rule" Enabled="true" Target="Exchange!Microsoft.Exchange.15.Server" ConfirmDelivery="false" Remotable="true" Priority="Normal" DiscardLevel="100">
+        <Category>PerformanceCollection</Category>
+        <DataSources>
+          <DataSource ID="DS" TypeID="Performance!System.Performance.OptimizedDataProvider">
+            <ComputerName>$Target/Host/Property[Type="Windows!Microsoft.Windows.Computer"]/NetworkName$</ComputerName>
+            <CounterName>Poison Queue Length</CounterName>
+            <ObjectName>MSExchangeTransport Queues</ObjectName>
+            <InstanceName>_total</InstanceName>
+            <AllInstances>false</AllInstances>
+            <Frequency>600</Frequency>
+            <Tolerance>1</Tolerance>
+            <ToleranceType>Absolute</ToleranceType>
+            <MaximumSampleSeparation>5</MaximumSampleSeparation>
+          </DataSource>
+        </DataSources>
+        <WriteActions>
+          <WriteAction ID="WriteToDB" TypeID="SystemCenter!Microsoft.SystemCenter.CollectPerformanceData" />
+          <WriteAction ID="WriteToDW" TypeID="SCDW!Microsoft.SystemCenter.DataWarehouse.PublishPerformanceData" />
+        </WriteActions>
+      </Rule>
+      <Rule ID="Exc.Custom.Collect.MessageTracking_sent" Enabled="true" Target="Exchange!Microsoft.Exchange.15.Server" ConfirmDelivery="true" Remotable="true" Priority="Normal" DiscardLevel="100">
+        <Category>Custom</Category>
+        <DataSources>
+          <DataSource ID="DS" TypeID="Exc.Custom.Datasource.MessageTracking">
+            <ScriptName>GetMessageStats.ps1</ScriptName>
+            <ScriptBody>
+                
+        
+ Param($ServerName)
+
+ Write-host " initial parameters :$ServerName"
+     $api = New-Object -comObject MOM.ScriptAPI 
+
+$message="Starting  Exchange Message Tracking script at $(get-date) `n"+"Parameters=$ServerName `n"+ "Running on $(get-content env:computername) as user  $(get-content env:username)"
+                $api.LogScriptEvent('EnterpriseDashboard.ExecDashboard.ExchangeScript.ps1', 9200, 4, $message );
+                write-host $message
+         
+         #prep logging 
+$loginfo=''
+$logwarn=''
+$logerr=''
+$LogErrcount=0
+
+      
+
+$msg= "Running on $(get-content env:computername) as user  $(get-content env:username) `n"
+write-host $msg
+$loginfo+=$msg
+
+$msg= "Remote session  parameters :$SQLserver,$SQLDBName,$TableName,$Logging,$DaysToGoBack,$MySite `n"
+write-host $msg
+$loginfo+=$msg
+
+Function Load-ExchangeSnapin
+{
+ 
+   Add-PSSnapin Microsoft.Exchange.Management.PowerShell.E2010
+   Get-PSSnapin -Registered|where{$_.Name -like 'Microsoft.Exchange.Management.*'}|add-pssnapin
+  }
+
+
+Load-ExchangeSnapin
+
+ if  (Get-PSSnapin Microsoft.Exchange.Management.PowerShell.E2010 -ErrorAction:SilentlyContinue)
+    {
+    $msg= "Exchange shell succesfully loaded `n"
+write-host $msg
+$loginfo+=$msg
+
+    }
+    else
+    {
+        $msg= "Couldnt load exchnage shell `n"
+write-host $msg
+$logerr+=$msg
+$LogErrcount++
+$message= " Couldnt load Exchange spanp in . Error :$logerr"
+
+        $api.LogScriptEvent('EnterpriseDashboard.ExecDashboard.ExchangeScript.ps1', 9205, 4, $message );
+                write-host $message
+
+#Exit
+
+    }
+
+
+ $rundate = $(Get-Date).toshortdatestring()
+
+#31 aug 2015 output start time
+Write-Host (get-date)
+#$startdate = (Get-Date).AddHours(-1).ToString("dd-MM-yyyy hh:00:00").Todatetime()
+#$enddate = (Get-Date).ToString("dd-MM-yyyyThh:00:00")
+$startdate = (Get-Date  -minute 0 -second 0).AddHours(-1) 
+$enddate = (Get-Date -minute 0 -second 0)
+
+$msg="will search logs between $($startdate) and $enddate   `n"
+write-host $msg
+$loginfo+=$msg
+
+
+
+
+$accepted_domains = Get-AcceptedDomain |Foreach {$_.domainname.domain} 
+[regex]$dom_rgx = "`(?i)(?:" + (($accepted_domains |% {"@" + [regex]::escape($_)}) -join "|") + ")$" 
+
+
+
+
+
+
+
+$exch_addrs = @{} 
+[int]$total_msgrec = 0
+[int]$total_msgsent = 0
+
+$obj_table = { 
+@" 
+        Date = $startdate
+	Server = $servername
+        Sent Total = $($intSent.Sum) 
+        Received Total = $($intRec.Sum)
+"@ 
+} 
+ 
+$props = $obj_table.ToString().Split("`n")|% {if ($_ -match "(.+)="){$matches[1].trim()}} 
+ 
+$stat_recs = @() 
+
+ 
+
+
+write-host $msg
+$loginfo+=$msg
+
+	$error.clear()
+    # Sent E-mails that select emails sent from normal mailboxes + smtp applications sending emails to the internal/internet recipients
+    
+    write-host "$total_msgsent messages sent"
+    $intSent = get-messagetrackinglog -Server $servername -Start  "$startdate" -End "$enddate" -resultsize unlimited -EventId 'SEND' | select recipientcount | Measure-Object -Sum -Property recipientcount
+    
+  
+    
+    $total_msgsent += $intSent.Sum
+	if($error)
+    { $msg=   "error running get-mesagetrackinglog  error text :$($Error[0].Exception) 'n"
+    write-host $msg
+    $logerr+=$msg
+    $LogErrcount++
+     }
+
+     
+     
+    # Received E-mails 
+      $error.clear()
+    #$intRec = get-messagetrackinglog -Server $Servername -Start "$startdate" -End "$enddate"  -resultsize unlimited -EventId DELIVER|  select RecipientCount| Measure-Object -Sum -Property RecipientCount
+    
+    	if($error)
+    { $msg=   "error running get-mesagetrackinglog for received mesages error text :$($Error[0].Exception) `n"
+    write-host $msg
+    $logerr+=$msg
+    $LogErrcount++
+     }
+
+
+    $total_msgrec += $intRec.Sum
+  
+
+
+ 
+	$stat_rec = (new-object psobject -property (ConvertFrom-StringData (&amp;$obj_table)))
+	$stat_recs += $stat_rec | select $props 
+
+
+
+              
+     
+foreach ($item in $stat_recs ){
+
+
+
+$msg= " $($item.date), $($item.server), $($item.'Sent Total'),$($item.'Received Total') "
+   $loginfo+=$msg
+
+  $bag = $api.CreatePropertyBag()
+  $bag.AddValue('InstanceName',$servername)
+  $bag.AddValue('ObjectName',"MSExchnage Transport")
+  $bag.AddValue('CounterName',"Sent")
+  	$bag.AddValue('Value',$item.'Sent Total')
+  $bag
+  
+     
+
+} 
+ 
+
+
+
+
+ 
+ IF ($errmsgcount -gt 0)
+ {
+                $api.LogScriptEvent('EnterpriseDashboard.ExecDashboard.ExchangeScript.ps1', 9205, 1, $logerr);
+                $api.LogScriptEvent('EnterpriseDashboard.ExecDashboard.ExchangeScript.ps1', 9206, 4, $loginfo );
+                
+
+ }
+ Else
+ {
+
+  $api.LogScriptEvent('EnterpriseDashboard.ExecDashboard.ExchangeScript.ps1', 9206, 4, $loginfo );
+                
+ }
+
+
+
+            </ScriptBody>
+            <IntervalSeconds>3600</IntervalSeconds>
+            <SyncTime>00:01</SyncTime>
+            <ServerName>$Target/Host/Property[Type="Windows!Microsoft.Windows.Computer"]/PrincipalName$</ServerName>
+            <Debug>false</Debug>
+          </DataSource>
+        </DataSources>
+        <ConditionDetection ID="MapToPerf" TypeID="Performance!System.Performance.DataGenericMapper">
+          <ObjectName>$Data/Property[@Name='ObjectName']$</ObjectName>
+          <CounterName>$Data/Property[@Name='CounterName']$</CounterName>
+          <InstanceName>$Data/Property[@Name='InstanceName']$</InstanceName>
+          <Value>$Data/Property[@Name='Value']$</Value>
+        </ConditionDetection>
+        <WriteActions>
+          <WriteAction ID="WriteToDb" TypeID="SystemCenter!Microsoft.SystemCenter.CollectPerformanceData" />
+          <WriteAction ID="ToDWH" TypeID="SCDW!Microsoft.SystemCenter.DataWarehouse.PublishPerformanceData" />
+        </WriteActions>
+      </Rule>
+      <Rule ID="Exc.Custom.Collect.MessageTracking_received" Enabled="true" Target="Exchange!Microsoft.Exchange.15.Server" ConfirmDelivery="true" Remotable="true" Priority="Normal" DiscardLevel="100">
+        <Category>Custom</Category>
+        <DataSources>
+          <DataSource ID="DS" TypeID="Exc.Custom.Datasource.MessageTracking">
+            <ScriptName>GetMessageStats.ps1</ScriptName>
+            <ScriptBody>
+                
+        
+ Param($ServerName)
+
+ Write-host " initial parameters :$ServerName"
+     $api = New-Object -comObject MOM.ScriptAPI 
+
+$message="Starting  Exchange Message Tracking script at $(get-date) `n"+"Parameters=$ServerName `n"+ "Running on $(get-content env:computername) as user  $(get-content env:username)"
+                $api.LogScriptEvent('EnterpriseDashboard.ExecDashboard.ExchangeScript.ps1', 9200, 4, $message );
+                write-host $message
+         
+         #prep logging 
+$loginfo=''
+$logwarn=''
+$logerr=''
+$LogErrcount=0
+
+      
+
+$msg= "Running on $(get-content env:computername) as user  $(get-content env:username) `n"
+write-host $msg
+$loginfo+=$msg
+
+$msg= "Remote session  parameters :$SQLserver,$SQLDBName,$TableName,$Logging,$DaysToGoBack,$MySite `n"
+write-host $msg
+$loginfo+=$msg
+
+Function Load-ExchangeSnapin
+{
+ 
+   Add-PSSnapin Microsoft.Exchange.Management.PowerShell.E2010
+   Get-PSSnapin -Registered|where{$_.Name -like 'Microsoft.Exchange.Management.*'}|add-pssnapin
+  }
+
+
+Load-ExchangeSnapin
+
+ if  (Get-PSSnapin Microsoft.Exchange.Management.PowerShell.E2010 -ErrorAction:SilentlyContinue)
+    {
+    $msg= "Exchange shell succesfully loaded `n"
+write-host $msg
+$loginfo+=$msg
+
+    }
+    else
+    {
+        $msg= "Couldnt load exchnage shell `n"
+write-host $msg
+$logerr+=$msg
+$LogErrcount++
+$message= " Couldnt load Exchange spanp in . Error :$logerr"
+
+        $api.LogScriptEvent('EnterpriseDashboard.ExecDashboard.ExchangeScript.ps1', 9205, 4, $message );
+                write-host $message
+
+#Exit
+
+    }
+
+
+ $rundate = $(Get-Date).toshortdatestring()
+
+#31 aug 2015 output start time
+Write-Host (get-date)
+#$startdate = (Get-Date).AddHours(-1).ToString("dd-MM-yyyy hh:00:00").Todatetime()
+#$enddate = (Get-Date).ToString("dd-MM-yyyyThh:00:00")
+$startdate = (Get-Date  -minute 0 -second 0).AddHours(-1) 
+$enddate = (Get-Date -minute 0 -second 0)
+
+$msg="will search logs between $($startdate) and $enddate   `n"
+write-host $msg
+$loginfo+=$msg
+
+
+
+
+$accepted_domains = Get-AcceptedDomain |Foreach {$_.domainname.domain} 
+[regex]$dom_rgx = "`(?i)(?:" + (($accepted_domains |% {"@" + [regex]::escape($_)}) -join "|") + ")$" 
+
+
+
+
+
+
+
+$exch_addrs = @{} 
+[int]$total_msgrec = 0
+[int]$total_msgsent = 0
+
+$obj_table = { 
+@" 
+        Date = $startdate
+	Server = $servername
+        Sent Total = $($intSent.Sum) 
+        Received Total = $($intRec.Sum)
+"@ 
+} 
+ 
+$props = $obj_table.ToString().Split("`n")|% {if ($_ -match "(.+)="){$matches[1].trim()}} 
+ 
+$stat_recs = @() 
+
+ 
+
+
+write-host $msg
+$loginfo+=$msg
+
+	$error.clear()
+    # Sent E-mails that select emails sent from normal mailboxes + smtp applications sending emails to the internal/internet recipients
+    
+    write-host "$total_msgsent messages sent"
+   # $intSent = get-messagetrackinglog -Server $servername -Start  "$startdate" -End "$enddate" -resultsize unlimited -EventId 'RECEIVE' | select recipientcount | Measure-Object -Sum -Property recipientcount
+    
+  
+    
+    $total_msgsent += $intSent.Sum
+	if($error)
+    { $msg=   "error running get-mesagetrackinglog  error text :$($Error[0].Exception) 'n"
+    write-host $msg
+    $logerr+=$msg
+    $LogErrcount++
+     }
+
+     
+     
+    # Received E-mails 
+      $error.clear()
+    $intRec = get-messagetrackinglog -Server $Servername -Start "$startdate" -End "$enddate"  -resultsize unlimited -EventId DELIVER|  select RecipientCount| Measure-Object -Sum -Property RecipientCount
+    
+    	if($error)
+    { $msg=   "error running get-mesagetrackinglog for received mesages error text :$($Error[0].Exception) `n"
+    write-host $msg
+    $logerr+=$msg
+    $LogErrcount++
+     }
+
+
+    $total_msgrec += $intRec.Sum
+  
+
+
+ 
+	$stat_rec = (new-object psobject -property (ConvertFrom-StringData (&amp;$obj_table)))
+	$stat_recs += $stat_rec | select $props 
+
+
+
+              
+     
+foreach ($item in $stat_recs ){
+
+
+
+$msg= " $($item.date), $($item.server), $($item.'Sent Total'),$($item.'Received Total') "
+   $loginfo+=$msg
+
+  $bag = $api.CreatePropertyBag()
+  $bag.AddValue('InstanceName',$servername)
+  $bag.AddValue('ObjectName',"MSExchnage Transport")
+  $bag.AddValue('CounterName',"Received")
+  	$bag.AddValue('Value',$item.'Received Total')
+  $bag
+  
+
+              
+
+} 
+ 
+
+
+
+
+ 
+ IF ($errmsgcount -gt 0)
+ {
+                $api.LogScriptEvent('EnterpriseDashboard.ExecDashboard.ExchangeScript.ps1', 9205, 1, $logerr);
+                $api.LogScriptEvent('EnterpriseDashboard.ExecDashboard.ExchangeScript.ps1', 9206, 4, $loginfo );
+                
+
+ }
+ Else
+ {
+
+  $api.LogScriptEvent('EnterpriseDashboard.ExecDashboard.ExchangeScript.ps1', 9206, 4, $loginfo );
+                
+ }
+
+
+
+            </ScriptBody>
+            <IntervalSeconds>3600</IntervalSeconds>
+            <SyncTime>00:01</SyncTime>
+            <ServerName>$Target/Host/Property[Type="Windows!Microsoft.Windows.Computer"]/PrincipalName$</ServerName>
+            <Debug>false</Debug>
+          </DataSource>
+        </DataSources>
+        <ConditionDetection ID="MapToPerf" TypeID="Performance!System.Performance.DataGenericMapper">
+          <ObjectName>$Data/Property[@Name='ObjectName']$</ObjectName>
+          <CounterName>$Data/Property[@Name='CounterName']$</CounterName>
+          <InstanceName>$Data/Property[@Name='InstanceName']$</InstanceName>
+          <Value>$Data/Property[@Name='Value']$</Value>
+        </ConditionDetection>
+        <WriteActions>
+          <WriteAction ID="WriteToDb" TypeID="SystemCenter!Microsoft.SystemCenter.CollectPerformanceData" />
+          <WriteAction ID="ToDWH" TypeID="SCDW!Microsoft.SystemCenter.DataWarehouse.PublishPerformanceData" />
+        </WriteActions>
+      </Rule>
+    </Rules>
+    <Monitors>
+      <UnitMonitor ID="ExchangeCustom.RetryRemoteDeliveryQueueLength.Monitor" Accessibility="Public" Enabled="true" Target="Exchange!Microsoft.Exchange.15.Server" ParentMonitorID="Health!System.Health.AvailabilityState" Remotable="true" Priority="Normal" TypeID="Performance!System.Performance.ConsecutiveSamplesThreshold" ConfirmDelivery="false">
+        <Category>Custom</Category>
+        <AlertSettings AlertMessage="ExchangeCustom.RetryRemoteDeliveryQueueLength.Monitor_AlertMessageResourceID">
+          <AlertOnState>Warning</AlertOnState>
+          <AutoResolve>true</AutoResolve>
+          <AlertPriority>Normal</AlertPriority>
+          <AlertSeverity>Error</AlertSeverity>
+          <AlertParameters>
+            <AlertParameter1>$Data[Default='']/Context/Value$</AlertParameter1>
+            <AlertParameter2>$Data[Default='']/Context/TimeSampled$</AlertParameter2>
+          </AlertParameters>
+        </AlertSettings>
+        <OperationalStates>
+          <OperationalState ID="RetryRemoteDeliveryQueueLength.Healthy" MonitorTypeStateID="ConditionFalse" HealthState="Success" />
+          <OperationalState ID="RetryRemoteDeliveryQueueLength.Warning" MonitorTypeStateID="ConditionTrue" HealthState="Warning" />
+        </OperationalStates>
+        <Configuration>
+          <ComputerName>$Target/Host/Property[Type="Windows!Microsoft.Windows.Computer"]/NetworkName$</ComputerName>
+          <CounterName>Retry Remote Delivery Queue Length</CounterName>
+          <ObjectName>MSExchangeTransport Queues</ObjectName>
+          <InstanceName>_total</InstanceName>
+          <AllInstances>false</AllInstances>
+          <Frequency>600</Frequency>
+          <Threshold>200</Threshold>
+          <Direction>greater</Direction>
+          <NumSamples>3</NumSamples>
+        </Configuration>
+      </UnitMonitor>
+      <UnitMonitor ID="ExchangeCustom.ActiveRemoteDeliveryQueueLength.Monitor" Accessibility="Public" Enabled="true" Target="Exchange!Microsoft.Exchange.15.Server" ParentMonitorID="Health!System.Health.AvailabilityState" Remotable="true" Priority="Normal" TypeID="Performance!System.Performance.ConsecutiveSamplesThreshold" ConfirmDelivery="false">
+        <Category>Custom</Category>
+        <AlertSettings AlertMessage="ExchangeCustom.ActiveRemoteDeliveryQueueLength.Monitor_AlertMessageResourceID">
+          <AlertOnState>Warning</AlertOnState>
+          <AutoResolve>true</AutoResolve>
+          <AlertPriority>Normal</AlertPriority>
+          <AlertSeverity>Error</AlertSeverity>
+          <AlertParameters>
+            <AlertParameter1>$Data[Default='']/Context/Value$</AlertParameter1>
+            <AlertParameter2>$Data[Default='']/Context/TimeSampled$</AlertParameter2>
+          </AlertParameters>
+        </AlertSettings>
+        <OperationalStates>
+          <OperationalState ID="ActiveRemoteDeliveryQueueLength.Healthy" MonitorTypeStateID="ConditionFalse" HealthState="Success" />
+          <OperationalState ID="ActiveRemoteDeliveryQueueLength.Warning" MonitorTypeStateID="ConditionTrue" HealthState="Warning" />
+        </OperationalStates>
+        <Configuration>
+          <ComputerName>$Target/Host/Property[Type="Windows!Microsoft.Windows.Computer"]/NetworkName$</ComputerName>
+          <CounterName>Active Remote Delivery Queue Length</CounterName>
+          <ObjectName>MSExchangeTransport Queues</ObjectName>
+          <InstanceName>_total</InstanceName>
+          <AllInstances>false</AllInstances>
+          <Frequency>600</Frequency>
+          <Threshold>200</Threshold>
+          <Direction>greater</Direction>
+          <NumSamples>3</NumSamples>
+        </Configuration>
+      </UnitMonitor>
+      <UnitMonitor ID="ExchangeCustom.ActiveMailboxDeliveryQueueLength.Monitor" Accessibility="Public" Enabled="true" Target="Exchange!Microsoft.Exchange.15.Server" ParentMonitorID="Health!System.Health.AvailabilityState" Remotable="true" Priority="Normal" TypeID="Performance!System.Performance.ConsecutiveSamplesThreshold" ConfirmDelivery="false">
+        <Category>Custom</Category>
+        <AlertSettings AlertMessage="ExchangeCustom.ActiveMailboxDeliveryQueueLength.Monitor_AlertMessageResourceID">
+          <AlertOnState>Warning</AlertOnState>
+          <AutoResolve>true</AutoResolve>
+          <AlertPriority>Normal</AlertPriority>
+          <AlertSeverity>Error</AlertSeverity>
+          <AlertParameters>
+            <AlertParameter1>$Data[Default='']/Context/Value$</AlertParameter1>
+            <AlertParameter2>$Data[Default='']/Context/TimeSampled$</AlertParameter2>
+          </AlertParameters>
+        </AlertSettings>
+        <OperationalStates>
+          <OperationalState ID="ActiveMailboxDeliveryQueueLength.Healthy" MonitorTypeStateID="ConditionFalse" HealthState="Success" />
+          <OperationalState ID="ActiveMailboxDeliveryQueueLength.Warning" MonitorTypeStateID="ConditionTrue" HealthState="Warning" />
+        </OperationalStates>
+        <Configuration>
+          <ComputerName>$Target/Host/Property[Type="Windows!Microsoft.Windows.Computer"]/NetworkName$</ComputerName>
+          <CounterName>Active Mailbox Delivery Queue Length</CounterName>
+          <ObjectName>MSExchangeTransport Queues</ObjectName>
+          <InstanceName>_total</InstanceName>
+          <AllInstances>false</AllInstances>
+          <Frequency>600</Frequency>
+          <Threshold>50</Threshold>
+          <Direction>greater</Direction>
+          <NumSamples>3</NumSamples>
+        </Configuration>
+      </UnitMonitor>
+      <UnitMonitor ID="ExchangeCustom.RetryMailboxDeliveryQueueLength.Monitor" Accessibility="Public" Enabled="true" Target="Exchange!Microsoft.Exchange.15.Server" ParentMonitorID="Health!System.Health.AvailabilityState" Remotable="true" Priority="Normal" TypeID="Performance!System.Performance.ConsecutiveSamplesThreshold" ConfirmDelivery="false">
+        <Category>Custom</Category>
+        <AlertSettings AlertMessage="ExchangeCustom.RetryMailboxDeliveryQueueLength.Monitor_AlertMessageResourceID">
+          <AlertOnState>Warning</AlertOnState>
+          <AutoResolve>true</AutoResolve>
+          <AlertPriority>Normal</AlertPriority>
+          <AlertSeverity>Error</AlertSeverity>
+          <AlertParameters>
+            <AlertParameter1>$Data[Default='']/Context/Value$</AlertParameter1>
+            <AlertParameter2>$Data[Default='']/Context/TimeSampled$</AlertParameter2>
+          </AlertParameters>
+        </AlertSettings>
+        <OperationalStates>
+          <OperationalState ID="RetryMailboxDeliveryQueueLength.Healthy" MonitorTypeStateID="ConditionFalse" HealthState="Success" />
+          <OperationalState ID="RetryMailboxDeliveryQueueLength.Warning" MonitorTypeStateID="ConditionTrue" HealthState="Warning" />
+        </OperationalStates>
+        <Configuration>
+          <ComputerName>$Target/Host/Property[Type="Windows!Microsoft.Windows.Computer"]/NetworkName$</ComputerName>
+          <CounterName>Retry Mailbox Delivery Queue Length</CounterName>
+          <ObjectName>MSExchangeTransport Queues</ObjectName>
+          <InstanceName>_total</InstanceName>
+          <AllInstances>false</AllInstances>
+          <Frequency>600</Frequency>
+          <Threshold>50</Threshold>
+          <Direction>greater</Direction>
+          <NumSamples>3</NumSamples>
+        </Configuration>
+      </UnitMonitor>
+      <UnitMonitor ID="ExchangeCustom.AggregateDeliveryQueueLength.AllQueues.Monitor" Accessibility="Public" Enabled="true" Target="Exchange!Microsoft.Exchange.15.Server" ParentMonitorID="Health!System.Health.AvailabilityState" Remotable="true" Priority="Normal" TypeID="Performance!System.Performance.ConsecutiveSamplesThreshold" ConfirmDelivery="false">
+        <Category>Custom</Category>
+        <AlertSettings AlertMessage="ExchangeCustom.AggregateDeliveryQueueLength.AllQueues.Monitor_AlertMessageResourceID">
+          <AlertOnState>Warning</AlertOnState>
+          <AutoResolve>true</AutoResolve>
+          <AlertPriority>Normal</AlertPriority>
+          <AlertSeverity>Error</AlertSeverity>
+          <AlertParameters>
+            <AlertParameter1>$Data[Default='']/Context/Value$</AlertParameter1>
+            <AlertParameter2>$Data[Default='']/Context/TimeSampled$</AlertParameter2>
+          </AlertParameters>
+        </AlertSettings>
+        <OperationalStates>
+          <OperationalState ID="AggregateDeliveryQueueLength.AllQueues.Healthy" MonitorTypeStateID="ConditionFalse" HealthState="Success" />
+          <OperationalState ID="AggregateDeliveryQueueLength.AllQueues.Warning" MonitorTypeStateID="ConditionTrue" HealthState="Warning" />
+        </OperationalStates>
+        <Configuration>
+          <ComputerName>$Target/Host/Property[Type="Windows!Microsoft.Windows.Computer"]/NetworkName$</ComputerName>
+          <CounterName>Aggregate Delivery Queue Length (All Queues)</CounterName>
+          <ObjectName>MSExchangeTransport Queues</ObjectName>
+          <InstanceName>_total</InstanceName>
+          <AllInstances>false</AllInstances>
+          <Frequency>600</Frequency>
+          <Threshold>500</Threshold>
+          <Direction>greater</Direction>
+          <NumSamples>3</NumSamples>
+        </Configuration>
+      </UnitMonitor>
+      <UnitMonitor ID="ExchangeCustom.Poison.Monitor" Accessibility="Public" Enabled="true" Target="Exchange!Microsoft.Exchange.15.Server" ParentMonitorID="Health!System.Health.AvailabilityState" Remotable="true" Priority="Normal" TypeID="Performance!System.Performance.ConsecutiveSamplesThreshold" ConfirmDelivery="false">
+        <Category>Custom</Category>
+        <AlertSettings AlertMessage="ExchangeCustom.Poison.Monitor_AlertMessageResourceID">
+          <AlertOnState>Warning</AlertOnState>
+          <AutoResolve>true</AutoResolve>
+          <AlertPriority>Normal</AlertPriority>
+          <AlertSeverity>Error</AlertSeverity>
+          <AlertParameters>
+            <AlertParameter1>$Data[Default='']/Context/Value$</AlertParameter1>
+            <AlertParameter2>$Data[Default='']/Context/TimeSampled$</AlertParameter2>
+          </AlertParameters>
+        </AlertSettings>
+        <OperationalStates>
+          <OperationalState ID="PoisonQueueLength.Healthy" MonitorTypeStateID="ConditionFalse" HealthState="Success" />
+          <OperationalState ID="PoisonQueueLength.Warning" MonitorTypeStateID="ConditionTrue" HealthState="Warning" />
+        </OperationalStates>
+        <Configuration>
+          <ComputerName>$Target/Host/Property[Type="Windows!Microsoft.Windows.Computer"]/NetworkName$</ComputerName>
+          <CounterName>Poison Queue Length</CounterName>
+          <ObjectName>MSExchangeTransport Queues</ObjectName>
+          <InstanceName>_total</InstanceName>
+          <AllInstances>false</AllInstances>
+          <Frequency>600</Frequency>
+          <Threshold>10</Threshold>
+          <Direction>greater</Direction>
+          <NumSamples>3</NumSamples>
+        </Configuration>
+      </UnitMonitor>
+    </Monitors>
+    <Overrides>
+      <RuleConfigurationOverride ID="OverrideForRuleExcCustomCollectMessageTrackingForContextMicrosoftExchange2010HubTransportRole58ffba9ce8884dcead4bf449f4885c03" Context="Exchange!Microsoft.Exchange.15.Server" Enforced="false" Rule="Exc.Custom.Collect.MessageTracking" Parameter="IntervalSeconds" Module="DS">
+        <Value>600</Value>
+      </RuleConfigurationOverride>
+      <MonitorConfigurationOverride ID="OverrideForMonitorExchangeCustomActiveMailboxDeliveryQueueLengthMonitorForContextMicrosoftExchange2010HubTransportRole944ff909c6fe431da25bdf7ad60a9705" Context="Exchange!Microsoft.Exchange.15.Server" Enforced="false" Monitor="ExchangeCustom.ActiveMailboxDeliveryQueueLength.Monitor" Parameter="Threshold">
+        <Value>500</Value>
+      </MonitorConfigurationOverride>
+    </Overrides>
+  </Monitoring>
+  <Presentation>
+    <StringResources>
+      <StringResource ID="ExchangeCustom.RetryRemoteDeliveryQueueLength.Monitor_AlertMessageResourceID" />
+      <StringResource ID="ExchangeCustom.ActiveRemoteDeliveryQueueLength.Monitor_AlertMessageResourceID" />
+      <StringResource ID="ExchangeCustom.ActiveMailboxDeliveryQueueLength.Monitor_AlertMessageResourceID" />
+      <StringResource ID="ExchangeCustom.RetryMailboxDeliveryQueueLength.Monitor_AlertMessageResourceID" />
+      <StringResource ID="ExchangeCustom.AggregateDeliveryQueueLength.AllQueues.Monitor_AlertMessageResourceID" />
+      <StringResource ID="ExchangeCustom.Poison.Monitor_AlertMessageResourceID" />
+    </StringResources>
+  </Presentation>
+  <LanguagePacks>
+    <LanguagePack ID="ENU" IsDefault="false">
+      <DisplayStrings>
+        <DisplayString ElementID="EnterpriseDashboard.Exchange.Queue.Monitoring">
+          <Name>EnterpriseDashboard Exchange Queue Monitoring</Name>
+        </DisplayString>
+        <DisplayString ElementID="ExchangeCustom.RetryRemoteDeliveryQueueLength.Monitor">
+          <Name>MSExchangeTransport Queues - Retry Remote Delivery Queue Length Monitor</Name>
+        </DisplayString>
+        <DisplayString ElementID="ExchangeCustom.RetryRemoteDeliveryQueueLength.Monitor" SubElementID="RetryRemoteDeliveryQueueLength.Healthy">
+          <Name>Condition False</Name>
+        </DisplayString>
+        <DisplayString ElementID="ExchangeCustom.RetryRemoteDeliveryQueueLength.Monitor" SubElementID="RetryRemoteDeliveryQueueLength.Warning">
+          <Name>Condition True</Name>
+        </DisplayString>
+        <DisplayString ElementID="ExchangeCustom.RetryRemoteDeliveryQueueLength.Monitor_AlertMessageResourceID">
+          <Name>MSExchangeTransport Queues - Retry Remote Delivery Queue Length &gt; 200</Name>
+          <Description>MSExchangeTransport Queues: Retry Remote Delivery Queue has  {0}  items       At time {1}</Description>
+        </DisplayString>
+        <DisplayString ElementID="ExchangeCustom.ActiveRemoteDeliveryQueueLength.Monitor">
+          <Name>MSExchangeTransport Queues - Active Remote Delivery Queue Length Monitor</Name>
+        </DisplayString>
+        <DisplayString ElementID="ExchangeCustom.ActiveRemoteDeliveryQueueLength.Monitor" SubElementID="ActiveRemoteDeliveryQueueLength.Healthy">
+          <Name>Condition False</Name>
+        </DisplayString>
+        <DisplayString ElementID="ExchangeCustom.ActiveRemoteDeliveryQueueLength.Monitor" SubElementID="ActiveRemoteDeliveryQueueLength.Warning">
+          <Name>Condition True</Name>
+        </DisplayString>
+        <DisplayString ElementID="ExchangeCustom.ActiveRemoteDeliveryQueueLength.Monitor_AlertMessageResourceID">
+          <Name>MSExchangeTransport Queues - Active Remote Delivery Queue Length &gt; 200</Name>
+          <Description>MSExchangeTransport Queues: Active Remote Delivery Queue has  {0}  items       At time {1}</Description>
+        </DisplayString>
+        <DisplayString ElementID="ExchangeCustom.ActiveMailboxDeliveryQueueLength.Monitor">
+          <Name>MSExchangeTransport Queues - Active Mailbox Delivery Queue Length Monitor</Name>
+        </DisplayString>
+        <DisplayString ElementID="ExchangeCustom.ActiveMailboxDeliveryQueueLength.Monitor" SubElementID="ActiveMailboxDeliveryQueueLength.Healthy">
+          <Name>Condition False</Name>
+        </DisplayString>
+        <DisplayString ElementID="ExchangeCustom.ActiveMailboxDeliveryQueueLength.Monitor" SubElementID="ActiveMailboxDeliveryQueueLength.Warning">
+          <Name>Condition True</Name>
+        </DisplayString>
+        <DisplayString ElementID="ExchangeCustom.ActiveMailboxDeliveryQueueLength.Monitor_AlertMessageResourceID">
+          <Name>MSExchangeTransport Queues - Active Mailbox Delivery Queue Length &gt; 50</Name>
+          <Description>MSExchangeTransport Queues: Active Mailbox Delivery Queue has  {0}  items       At time {1}</Description>
+        </DisplayString>
+        <DisplayString ElementID="ExchangeCustom.RetryMailboxDeliveryQueueLength.Monitor">
+          <Name>MSExchangeTransport Queues - Retry Mailbox Delivery Queue Length Monitor</Name>
+        </DisplayString>
+        <DisplayString ElementID="ExchangeCustom.RetryMailboxDeliveryQueueLength.Monitor" SubElementID="RetryMailboxDeliveryQueueLength.Healthy">
+          <Name>Condition False</Name>
+        </DisplayString>
+        <DisplayString ElementID="ExchangeCustom.RetryMailboxDeliveryQueueLength.Monitor" SubElementID="RetryMailboxDeliveryQueueLength.Warning">
+          <Name>Condition True</Name>
+        </DisplayString>
+        <DisplayString ElementID="ExchangeCustom.RetryMailboxDeliveryQueueLength.Monitor_AlertMessageResourceID">
+          <Name>MSExchangeTransport Queues - Retry Mailbox Delivery Queue Length &gt; 50</Name>
+          <Description>MSExchangeTransport Queues: Retry Mailbox Delivery Queue has  {0}  items       At time {1}</Description>
+        </DisplayString>
+        <DisplayString ElementID="ExchangeCustom.Poison.Monitor">
+          <Name>MSExchangeTransport Queues - Retry Mailbox Delivery Queue Length Monitor</Name>
+        </DisplayString>
+        <DisplayString ElementID="ExchangeCustom.Poison.Monitor" SubElementID="PoisonQueueLength.Healthy">
+          <Name>Condition False</Name>
+        </DisplayString>
+        <DisplayString ElementID="ExchangeCustom.Poison.Monitor" SubElementID="PoisonQueueLength.Warning">
+          <Name>Condition True</Name>
+        </DisplayString>
+        <DisplayString ElementID="ExchangeCustom.Poison.Monitor_AlertMessageResourceID">
+          <Name>MSExchangeTransport Queues - Poison Queue Length &gt; 10</Name>
+          <Description>MSExchangeTransport Queues: Poison Queue has  {0}  items       At time {1}</Description>
+        </DisplayString>
+        <DisplayString ElementID="ExchangeCustom.AggregateDeliveryQueueLength.AllQueues.Monitor">
+          <Name>MSExchangeTransport Queues - Aggregate Delivery Queue  Length Monitor</Name>
+        </DisplayString>
+        <DisplayString ElementID="ExchangeCustom.AggregateDeliveryQueueLength.AllQueues.Monitor" SubElementID="AggregateDeliveryQueueLength.AllQueues.Healthy">
+          <Name>Condition False</Name>
+        </DisplayString>
+        <DisplayString ElementID="ExchangeCustom.AggregateDeliveryQueueLength.AllQueues.Monitor" SubElementID="AggregateDeliveryQueueLength.AllQueues.Warning">
+          <Name>Condition True</Name>
+        </DisplayString>
+        <DisplayString ElementID="ExchangeCustom.AggregateDeliveryQueueLength.AllQueues.Monitor_AlertMessageResourceID">
+          <Name>MSExchangeTransport Queues - Aggregate Delivery Queue Length &gt; 500</Name>
+          <Description>MSExchangeTransport Queues: Aggregate Delivery Queue has  {0}  items       At time {1}</Description>
+        </DisplayString>
+        <DisplayString ElementID="Custom.Exchange.RetryRemoteDeliveryQueueLength.Rule">
+          <Name>MSExchangeTransport Queues \ Retry Remote Delivery Queue Length Collection Rule </Name>
+        </DisplayString>
+        <DisplayString ElementID="Custom.Exchange.ActiveRemoteDeliveryQueueLength.Rule">
+          <Name>MSExchangeTransport Queues \ Active Remote Delivery Queue Length Collection Rule </Name>
+        </DisplayString>
+        <DisplayString ElementID="Custom.Exchange.RetryMailboxDeliveryQueueLength.Rule">
+          <Name>MSExchangeTransport Queues \ Retry Mailbox Delivery Queue Length Collection Rule </Name>
+        </DisplayString>
+        <DisplayString ElementID="Custom.Exchange.ActiveMailboxDeliveryQueueLength.Rule">
+          <Name>MSExchangeTransport Queues \ Active Mailbox Delivery Queue Length Collection Rule </Name>
+        </DisplayString>
+        <DisplayString ElementID="Custom.Exchange.AggregateDeliveryQueueLength.AllQueues.Rule">
+          <Name>MSExchangeTransport Queues \ Aggregate Delivery Queue Length Collection Rule </Name>
+        </DisplayString>
+      </DisplayStrings>
+    </LanguagePack>
+  </LanguagePacks>
+</ManagementPack>

@@ -13,11 +13,11 @@
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
     <OutputPath>bin\Debug\</OutputPath>
-    <GenerateSealed>false</GenerateSealed>
+    <GenerateSealed>True</GenerateSealed>
     <Company>MyCompany</Company>
     <Copyright>Copyright (c) MyCompany. All rights reserved.</Copyright>
-    <DelaySigning>false</DelaySigning>
-    <AssemblyOriginatorKeyFile />
+    <DelaySigning>False</DelaySigning>
+    <AssemblyOriginatorKeyFile>C:\Source\Repos\SCEnterpriseDashboards\EnterpriseDashboard\mob.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
     <DebugSymbols>false</DebugSymbols>
@@ -54,6 +54,12 @@
       <Alias>System</Alias>
       <MinVersion>7.5.8501.0</MinVersion>
     </ManagementPackReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Dashboards" />
+    <Folder Include="Classes" />
+    <Folder Include="Discoveries" />
+    <Folder Include="Resources" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\VSAC\Microsoft.SystemCenter.OperationsManager.targets" />
 </Project>
