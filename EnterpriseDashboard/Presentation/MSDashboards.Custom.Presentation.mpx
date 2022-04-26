@@ -1,0 +1,177 @@
+﻿<ManagementPackFragment SchemaVersion="2.0" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Presentation>
+    <Views>
+      <View ID="MSDashboard.Troubleshooting.View" Accessibility="Public" Enabled="true" Target="SCLibrary!Microsoft.SystemCenter.ManagementServer" TypeID="SCLibrary!Microsoft.SystemCenter.StateViewType" Visible="true">
+        <Category>Operations</Category>
+        <Criteria>
+          <InMaintenanceMode>false</InMaintenanceMode>
+        </Criteria>
+        <Presentation>
+          <ColumnInfo Index="0" SortIndex="0" Width="100" Grouped="false" Sorted="true" IsSortable="true" Visible="true" SortOrder="Descending">
+            <Name>State</Name>
+            <Id>Microsoft.SystemCenter.ManagementServer-*-9189a49e-b2de-cab0-2e4f-4925b68e335d-*-Health</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="1" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="true" Visible="true" SortOrder="Ascending">
+            <Name>Maintenance Mode</Name>
+            <Id>InMaintenanceMode</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="2" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="true" Visible="true" SortOrder="Ascending">
+            <Name>Name</Name>
+            <Id>Name</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="3" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="true" Visible="true" SortOrder="Ascending">
+            <Name>Path</Name>
+            <Id>Path</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="4" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="true" Visible="false" SortOrder="Ascending">
+            <Name>Display Name</Name>
+            <Id>System.Entity/DisplayName</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="5" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="true" Visible="false" SortOrder="Ascending">
+            <Name>Authentication Name</Name>
+            <Id>Microsoft.SystemCenter.HealthService/AuthenticationName</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="6" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="true" Visible="false" SortOrder="Ascending">
+            <Name>Maximum Queue Size</Name>
+            <Id>Microsoft.SystemCenter.HealthService/MaximumQueueSize</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="7" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="true" Visible="false" SortOrder="Ascending">
+            <Name>Maximum Size Of All Transferred Files</Name>
+            <Id>Microsoft.SystemCenter.HealthService/MaximumSizeOfAllTransferredFiles</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="8" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="false" Visible="false" SortOrder="Ascending">
+            <Name>Request Compression</Name>
+            <Id>Microsoft.SystemCenter.HealthService/RequestCompression</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="9" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="false" Visible="false" SortOrder="Ascending">
+            <Name>Create Listener</Name>
+            <Id>Microsoft.SystemCenter.HealthService/CreateListener</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="10" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="true" Visible="false" SortOrder="Ascending">
+            <Name>Port</Name>
+            <Id>Microsoft.SystemCenter.HealthService/Port</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="11" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="false" Visible="false" SortOrder="Ascending">
+            <Name>Is Root Health Service Emulator</Name>
+            <Id>Microsoft.SystemCenter.HealthService/IsRHS</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="12" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="false" Visible="false" SortOrder="Ascending">
+            <Name>Is Management Server</Name>
+            <Id>Microsoft.SystemCenter.HealthService/IsManagementServer</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="13" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="false" Visible="false" SortOrder="Ascending">
+            <Name>Is Agent</Name>
+            <Id>Microsoft.SystemCenter.HealthService/IsAgent</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="14" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="false" Visible="false" SortOrder="Ascending">
+            <Name>Is Gateway</Name>
+            <Id>Microsoft.SystemCenter.HealthService/IsGateway</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="15" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="false" Visible="false" SortOrder="Ascending">
+            <Name>Is Manually Installed</Name>
+            <Id>Microsoft.SystemCenter.HealthService/IsManuallyInstalled</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="16" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="true" Visible="false" SortOrder="Ascending">
+            <Name>Installed By</Name>
+            <Id>Microsoft.SystemCenter.HealthService/InstalledBy</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="17" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="false" Visible="false" SortOrder="Ascending">
+            <Name>Install Time</Name>
+            <Id>Microsoft.SystemCenter.HealthService/InstallTime</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="18" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="true" Visible="false" SortOrder="Ascending">
+            <Name>Version</Name>
+            <Id>Microsoft.SystemCenter.HealthService/Version</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="19" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="true" Visible="false" SortOrder="Ascending">
+            <Name>Action Account Identity</Name>
+            <Id>Microsoft.SystemCenter.HealthService/ActionAccountIdentity</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="20" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="false" Visible="false" SortOrder="Ascending">
+            <Name>Send Heartbeats to Management Servers</Name>
+            <Id>Microsoft.SystemCenter.HealthService/HeartbeatEnabled</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="21" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="true" Visible="false" SortOrder="Ascending">
+            <Name>Heartbeat Interval (seconds)</Name>
+            <Id>Microsoft.SystemCenter.HealthService/HeartbeatInterval</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="22" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="false" Visible="false" SortOrder="Ascending">
+            <Name>Managed Through Active Directory</Name>
+            <Id>Microsoft.SystemCenter.HealthService/ActiveDirectoryManaged</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="23" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="false" Visible="false" SortOrder="Ascending">
+            <Name>Proxying Enabled</Name>
+            <Id>Microsoft.SystemCenter.HealthService/ProxyingEnabled</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="24" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="true" Visible="false" SortOrder="Ascending">
+            <Name>Patch List</Name>
+            <Id>Microsoft.SystemCenter.HealthService/PatchList</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="25" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="true" Visible="false" SortOrder="Ascending">
+            <Name>Agent communication protocol</Name>
+            <Id>Microsoft.SystemCenter.HealthService/Protocol</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="26" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="false" Visible="false" SortOrder="Ascending">
+            <Name>Agent initiates connection to parent agents</Name>
+            <Id>Microsoft.SystemCenter.HealthService/InitiatesConnectionToParent</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="27" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="true" Visible="false" SortOrder="Ascending">
+            <Name>Authentication service URI</Name>
+            <Id>Microsoft.SystemCenter.HealthService/ThirdPartyAuthenticationUri</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="28" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="true" Visible="false" SortOrder="Ascending">
+            <Name>Management Server SCP</Name>
+            <Id>Microsoft.SystemCenter.ManagementServer/ManagementServerSCP</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="29" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="false" Visible="false" SortOrder="Ascending">
+            <Name>Auto Approve Manually Installed Agents</Name>
+            <Id>Microsoft.SystemCenter.ManagementServer/AutoApproveManuallyInstalledAgents</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="30" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="true" Visible="false" SortOrder="Ascending">
+            <Name>Number of Missing Heartbeats Allowed</Name>
+            <Id>Microsoft.SystemCenter.ManagementServer/NumberOfMissingHeartBeatsToMarkMachineDown</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="31" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="true" Visible="false" SortOrder="Ascending">
+            <Name>Proxy Address</Name>
+            <Id>Microsoft.SystemCenter.ManagementServer/ProxyAddress</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="32" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="true" Visible="false" SortOrder="Ascending">
+            <Name>Proxy Port</Name>
+            <Id>Microsoft.SystemCenter.ManagementServer/ProxyPort</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="33" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="false" Visible="false" SortOrder="Ascending">
+            <Name>Reject Manually Installed Agents</Name>
+            <Id>Microsoft.SystemCenter.ManagementServer/RejectManuallyInstalledAgents</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="34" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="false" Visible="false" SortOrder="Ascending">
+            <Name>Use Proxy Server</Name>
+            <Id>Microsoft.SystemCenter.ManagementServer/UseProxyServer</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="35" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="true" Visible="false" SortOrder="Ascending">
+            <Name>User Action Manager</Name>
+            <Id>Microsoft.SystemCenter.UserActionManager</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="36" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="true" Visible="false" SortOrder="Ascending">
+            <Name>Agent Manager</Name>
+            <Id>Microsoft.SystemCenter.AgentManager</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="37" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="true" Visible="false" SortOrder="Ascending">
+            <Name>Crash Listener</Name>
+            <Id>Microsoft.SystemCenter.CM.AEM.CrashListener</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="38" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="true" Visible="false" SortOrder="Ascending">
+            <Name>CEIP Data Listener Instance</Name>
+            <Id>Microsoft.SystemCenter.CM.SQM.SQMListener</Id>
+          </ColumnInfo>
+        </Presentation>
+        <Target />
+      </View>
+    </Views>
+    <Folders>
+      <Folder ID="MSDashboard.Troubleshooting.Folder" Accessibility="Public" ParentFolder="SCLibrary!Microsoft.SystemCenter.Monitoring.ViewFolder.Root" />
+    </Folders>
+    <FolderItems>
+      <FolderItem ElementID="MSDashboard.Troubleshooting.View" ID="ie8b94e5d06094c74a476db60d4b41040" Folder="MSDashboard.Troubleshooting.Folder" />
+    </FolderItems>
+  </Presentation>
+</ManagementPackFragment>

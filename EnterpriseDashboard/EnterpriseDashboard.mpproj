@@ -32,6 +32,18 @@
     <Compile Include="EnterpriseDashboard.mpx">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="LanguagePacks\MSDashboards.Custom.LanguagePack.en-us.mpx">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Presentation\MSDashboards.Custom.Presentation.mpx">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Rules\MSDashboards.Custom.AllinOne.Sync.mpx">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tasks\MSDashboards.Custom.Task.HealthState.Trouleshooter.mpx">
+      <SubType>Code</SubType>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <ManagementPackReference Include="Microsoft.SystemCenter.Library">
@@ -59,6 +71,10 @@
     <Folder Include="Dashboards" />
     <Folder Include="Classes" />
     <Folder Include="Discoveries" />
+    <Folder Include="LanguagePacks" />
+    <Folder Include="Presentation" />
+    <Folder Include="Tasks" />
+    <Folder Include="Rules" />
     <Folder Include="Resources" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\VSAC\Microsoft.SystemCenter.OperationsManager.targets" />

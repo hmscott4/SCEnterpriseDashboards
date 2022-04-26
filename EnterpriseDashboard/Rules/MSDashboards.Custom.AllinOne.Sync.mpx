@@ -1,0 +1,28 @@
+﻿<ManagementPackFragment SchemaVersion="2.0" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Monitoring>
+  <Rules>
+      <Rule ID="MSDashboards.Custom.AllinOne.Sync" Enabled="false" Target="SCLibrary!Microsoft.SystemCenter.AllManagementServersPool" ConfirmDelivery="true" Remotable="true" Priority="Normal" DiscardLevel="100">
+        <Category>Custom</Category>
+        <DataSources>
+          <DataSource ID="SchedDS" TypeID="System!System.SimpleScheduler">
+            <IntervalSeconds>300</IntervalSeconds>
+            <SyncTime>00:02</SyncTime>
+          </DataSource>
+        </DataSources>
+        <WriteActions>
+          <WriteAction ID="PoshWA" TypeID="MSDashboards.Custom.SDK.Generic.WAType.v3">
+            <ScriptName>AllGroupsSync.ps1</ScriptName>
+            <SQLServer />
+            <SQLDBName>EnterpriseDashboards</SQLDBName>
+            <GroupList>Group1;Group2;Group3</GroupList>
+            <Mode>Rule</Mode>
+            <GetAlerts>true</GetAlerts>
+            <GetMonitorTree>false</GetMonitorTree>
+            <Logging>false</Logging>
+            <TimeoutSeconds>250</TimeoutSeconds>
+          </WriteAction>
+        </WriteActions>
+      </Rule>
+  </Rules>
+  </Monitoring>
+</ManagementPackFragment>

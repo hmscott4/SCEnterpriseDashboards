@@ -1,0 +1,34 @@
+﻿<ManagementPackFragment SchemaVersion="2.0" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <LanguagePacks>
+    <LanguagePack ID="ENU" IsDefault="true">
+      <DisplayStrings>
+        <DisplayString ElementID="MSDashboards.Custom.Task.HealthState.Trouleshooter">
+          <Name>Dashboard Sync Troubleshooter Task</Name>
+          <Description>Enable  with Override and specify the SCOM Group . If no Group specified script will exit.</Description>
+        </DisplayString>
+        <DisplayString ElementID="MSDashboard.Troubleshooting.Folder">
+          <Name>Custom Dashboard Sync Troubleshooter</Name>
+        </DisplayString>
+        <DisplayString ElementID="MSDashboard.Troubleshooting.View">
+          <Name>Dashboard Target Management Servers</Name>
+          <Description>Dashboard rules runs on ll Management Servers Resource Pool by default. Use tasks from task pane to simulate Haealth State sync and Performance sync rules.</Description>
+        </DisplayString>
+        <DisplayString ElementID="EnterpriseDashboard">
+          <Name>Enterprise Dashboards Sync Rules MP</Name>
+          <Description>
+            Mobility Dashboards are a solution to represent monitored data independent of the SDK service using SQL Mobility Reports\Dashboards. Requirement is to have SQL 2016 Enterprise or developer version.
+          </Description>
+        </DisplayString>
+        <DisplayString ElementID="MSDashboards.Custom.AllinOne.Sync">
+          <Name>MSDashboards Unified Sync Engine for Multiple Groups </Name>
+        </DisplayString>
+        <DisplayString ElementID="MSDashboards.Custom.AllinOne.Sync" SubElementID="SchedDS">
+          <Name>SchedDS</Name>
+        </DisplayString>
+        <DisplayString ElementID="MSDashboards.Custom.AllinOne.Sync" SubElementID="PoshWA">
+          <Name>PoshWA</Name>
+        </DisplayString>
+      </DisplayStrings>
+    </LanguagePack>
+  </LanguagePacks>
+</ManagementPackFragment>
